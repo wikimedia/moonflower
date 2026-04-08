@@ -1,2 +1,65 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+
+@theme {
+	--font-mono: 'Space Mono', monospace;
+	--animate-slide-up: slide-up 0.3s ease-out;
+	--animate-fade-in: fade-in 0.4s ease-out forwards;
+	--animate-stagger-in: stagger-in 0.5s ease-out forwards;
+}
+
+@keyframes slide-up {
+	from {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes stagger-in {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Global resets for brutalist aesthetic */
+* {
+	border-radius: 0 !important;
+}
+
+::selection {
+	background: black;
+	color: white;
+}
+
+body {
+	font-family: 'Space Mono', monospace;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Stagger animation delays for cards */
+.card-stagger:nth-child(1) { animation-delay: 0ms; }
+.card-stagger:nth-child(2) { animation-delay: 80ms; }
+.card-stagger:nth-child(3) { animation-delay: 160ms; }
+.card-stagger:nth-child(4) { animation-delay: 240ms; }
+.card-stagger:nth-child(5) { animation-delay: 320ms; }
