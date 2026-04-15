@@ -60,7 +60,7 @@
 		<div class="flex items-baseline justify-between">
 			<h1 class="text-2xl font-bold uppercase tracking-[0.3em]">{en.inventory.title}</h1>
 			{#if !loading}
-				<span class="text-xs uppercase tracking-widest opacity-40">
+				<span class="badge badge-ghost text-xs uppercase tracking-widest">
 					{en.inventory.cardCount(cards.length)}
 				</span>
 			{/if}
@@ -69,7 +69,7 @@
 		{#if authState.user}
 			<button
 				onclick={() => authState.signOut()}
-				class="mt-2 text-xs font-bold uppercase tracking-widest opacity-40 transition-opacity hover:opacity-100"
+				class="link link-hover mt-2 text-xs font-bold uppercase tracking-widest opacity-40"
 			>
 				{en.auth.signOut}
 			</button>
@@ -78,7 +78,7 @@
 
 	{#if loading}
 		<div class="flex flex-1 items-center justify-center">
-			<div class="h-0.5 w-16 animate-pulse bg-black"></div>
+			<span class="loading loading-bars loading-md"></span>
 		</div>
 	{:else if cards.length === 0}
 		<div class="flex flex-1 flex-col items-center justify-center">

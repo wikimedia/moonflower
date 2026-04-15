@@ -78,5 +78,5 @@
 		{/if}
 	</h1>
 
-	<div class="mt-6 h-0.5 w-16 animate-pulse bg-black"></div>
+	<span class="loading loading-bars loading-md mt-6"></span>
 </div>

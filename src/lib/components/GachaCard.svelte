@@ -57,28 +57,28 @@
 	<!-- Face-down: clickable to flip -->
 	{#if !isFlipped}
 		<button
-			class="card-inner card-back flex w-full items-center justify-center border-2 border-white bg-black"
+			class="card card-back bg-neutral text-neutral-content flex w-full items-center justify-center border-2 border-base-content/20"
 			onclick={flip}
 			aria-label={en.gacha.revealHint}
 		>
-			<span class="select-none text-7xl font-bold text-white">{en.gacha.revealHint}</span>
+			<span class="select-none text-7xl font-bold">{en.gacha.revealHint}</span>
 		</button>
 	{:else}
-		<!-- Face-up: static content, no wrapping button -->
-		<div class="card-front border-2 border-black bg-white p-5 animate-fade-in">
+		<!-- Face-up: static content -->
+		<div class="card bg-base-200 border-2 border-base-content/20 p-5 animate-fade-in">
 			<h2
-				class="mb-3 border-b-2 border-black pb-2 text-base font-bold uppercase tracking-widest"
+				class="mb-3 border-b-2 border-base-content/20 pb-2 text-base font-bold uppercase tracking-widest"
 			>
 				{card.title}
 			</h2>
 
-			<div class="prose prose-sm max-w-none text-black" class:line-clamp-6={!expanded}>
+			<div class="prose prose-sm max-w-none" class:line-clamp-6={!expanded}>
 				<p>{card.extract}</p>
 			</div>
 
 			{#if card.extract && card.extract.length > 200}
 				<button
-					class="mt-2 text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100"
+					class="link link-hover mt-2 text-xs font-bold uppercase tracking-widest opacity-50"
 					onclick={toggleExpand}
 				>
 					{expanded ? en.gacha.collapse : en.gacha.readMore}
@@ -87,15 +87,18 @@
 
 			{#if mode === 'pull' && !claimed}
 				<button
-					class="mt-4 w-full border-2 border-black bg-black py-3 font-bold tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black disabled:opacity-50"
+					class="btn btn-primary btn-block mt-4 tracking-[0.3em]"
 					onclick={handleClaim}
 					disabled={claiming}
 				>
+					{#if claiming}
+						<span class="loading loading-spinner loading-sm"></span>
+					{/if}
 					{claiming ? en.common.loading : en.gacha.claimButton}
 				</button>
 			{:else if mode === 'pull' && claimed}
 				<div
-					class="mt-4 w-full border-2 border-black bg-white py-3 text-center font-bold tracking-[0.3em] text-black opacity-40"
+					class="btn btn-disabled btn-block mt-4 tracking-[0.3em]"
 				>
 					{en.common.claimed}
 				</div>
@@ -103,10 +106,13 @@
 
 			{#if mode === 'inventory'}
 				<button
-					class="mt-4 w-full border-2 border-black bg-white py-3 font-bold tracking-[0.3em] text-black transition-colors hover:bg-black hover:text-white disabled:opacity-50"
+					class="btn btn-outline btn-block mt-4 tracking-[0.3em]"
 					onclick={handleRelease}
 					disabled={releasing}
 				>
+					{#if releasing}
+						<span class="loading loading-spinner loading-sm"></span>
+					{/if}
 					{releasing ? en.common.loading : en.inventory.releaseButton}
 				</button>
 			{/if}

@@ -86,9 +86,14 @@
 			<button
 				onclick={pull}
 				disabled={pulling}
-				class="border-2 border-black bg-black px-16 py-5 text-lg font-bold tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black disabled:opacity-50"
+				class="btn btn-primary btn-lg text-lg tracking-[0.3em]"
 			>
-				{pulling ? en.gacha.pulling : en.gacha.pullButton}
+				{#if pulling}
+					<span class="loading loading-dots loading-sm"></span>
+					{en.gacha.pulling}
+				{:else}
+					{en.gacha.pullButton}
+				{/if}
 			</button>
 
 			{#if !hasPulled}
@@ -112,9 +117,14 @@
 		<button
 			onclick={pull}
 			disabled={pulling}
-			class="mb-20 border-2 border-black bg-black px-12 py-4 text-base font-bold tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black disabled:opacity-50"
+			class="btn btn-primary mb-20 tracking-[0.3em]"
 		>
-			{pulling ? en.gacha.pulling : en.gacha.pullButton}
+			{#if pulling}
+				<span class="loading loading-dots loading-sm"></span>
+				{en.gacha.pulling}
+			{:else}
+				{en.gacha.pullButton}
+			{/if}
 		</button>
 	{/if}
 </div>

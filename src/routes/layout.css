@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@plugin "daisyui" {
+	themes: black --default;
+}
 
 @theme {
 	--font-mono: 'Space Mono', monospace;

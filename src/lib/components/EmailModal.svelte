@@ -35,25 +35,21 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-6"
-	role="dialog"
-	aria-modal="true"
-	tabindex="-1"
-	onclick={handleBackdrop}
->
-	<div class="w-full max-w-sm border-2 border-black bg-white p-6">
+<div class="modal modal-open" role="dialog" aria-modal="true" onclick={handleBackdrop}>
+	<div class="modal-box bg-base-200 border-2 border-base-content/20">
 		{#if sent}
-			<h2 class="mb-4 text-lg font-bold uppercase tracking-widest">{en.auth.checkEmail}</h2>
-			<p class="mb-6 text-sm tracking-wide">{en.auth.emailSent}</p>
-			<button
-				class="w-full border-2 border-black bg-black py-3 font-bold tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black"
-				onclick={onClose}
-			>
-				{en.common.ok}
-			</button>
+			<h2 class="text-lg font-bold uppercase tracking-widest">{en.auth.checkEmail}</h2>
+			<p class="mt-4 text-sm tracking-wide">{en.auth.emailSent}</p>
+			<div class="modal-action">
+				<button
+					class="btn btn-primary btn-block tracking-[0.3em]"
+					onclick={onClose}
+				>
+					{en.common.ok}
+				</button>
+			</div>
 		{:else}
-			<h2 class="mb-2 text-lg font-bold uppercase tracking-widest">
+			<h2 class="text-lg font-bold uppercase tracking-widest">
 				{en.auth.signInToClaim}
 			</h2>
 			<form onsubmit={handleSubmit}>
@@ -62,16 +58,22 @@
 					bind:value={email}
 					placeholder={en.auth.emailPlaceholder}
 					required
-					class="mb-4 mt-4 w-full border-2 border-black bg-white px-4 py-3 font-mono text-sm tracking-wide outline-none focus:bg-black focus:text-white"
+					class="input input-bordered w-full mt-4 font-mono text-sm tracking-wide"
 				/>
-				<button
-					type="submit"
-					disabled={sending}
-					class="w-full border-2 border-black bg-black py-3 font-bold tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black disabled:opacity-50"
-				>
-					{sending ? en.common.loading : en.auth.sendLink}
-				</button>
+				<div class="modal-action">
+					<button
+						type="submit"
+						disabled={sending}
+						class="btn btn-primary btn-block tracking-[0.3em]"
+					>
+						{#if sending}
+							<span class="loading loading-spinner loading-sm"></span>
+						{/if}
+						{sending ? en.common.loading : en.auth.sendLink}
+					</button>
+				</div>
 			</form>
 		{/if}
 	</div>
+	<div class="modal-backdrop" onclick={onClose}></div>
 </div>
