@@ -1,2 +1,3 @@
 // Moonflower — $lib barrel exports
-export type { WikiCard, ClaimedCard } from './types';
+export type { WikiArticle, Experiment } from './types';
+export { fetchRandomArticles } from './api/wiki-api';

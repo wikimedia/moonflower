@@ -1,54 +1,37 @@
 export const en = {
 	common: {
 		appName: 'MOONFLOWER',
-		tagline: 'Pull. Claim. Collect.',
+		tagline: 'A Wikipedia gacha experiment platform.',
 		loading: 'Loading...',
-		ok: 'OK',
-		claimed: 'CLAIMED'
+		ok: 'OK'
 	},
-	nav: {
-		pull: '[ PULL ]',
-		inventory: '[ INVENTORY ]'
+	hub: {
+		heading: 'EXPERIMENTS',
+		subtitle: 'Choose an experiment to play.',
+		empty: 'No experiments available yet.'
 	},
-	gacha: {
+	shared: {
 		pullButton: '[ PULL ]',
-		claimButton: '[ CLAIM ]',
-		revealHint: '?',
 		pulling: 'PULLING...',
-		noPulls: 'Tap pull to begin.',
-		emptyPull: 'No unclaimed articles found. Try again.',
+		revealHint: '?',
 		readMore: '[ READ MORE ]',
-		collapse: '[ COLLAPSE ]'
+		collapse: '[ COLLAPSE ]',
+		back: '← BACK',
+		arrow: '→',
+		noPulls: 'Tap pull to begin.',
+		emptyPull: 'No articles found. Try again.'
 	},
-	auth: {
-		emailPlaceholder: 'your@email.com',
-		sendLink: '[ SEND MAGIC LINK ]',
-		checkEmail: 'Check your email.',
-		emailSent: 'A sign-in link has been sent to your inbox.',
-		emailPrompt: 'Please provide your email for confirmation',
-		verifying: 'VERIFYING...',
-		signOut: '[ SIGN OUT ]',
-		signInToClaim: 'Sign in to claim this card.'
-	},
-	inventory: {
-		title: 'INVENTORY',
-		empty: 'Nothing here yet. Go pull some cards.',
-		releaseButton: '[ RELEASE ]',
-		releaseConfirm: 'Release this card back into the wild?',
-		cardCount: (n: number) => `${n} card${n === 1 ? '' : 's'}`
+	experiments: {
+		example: {
+			name: 'EXAMPLE',
+			description: 'The classic pull-and-reveal gacha mechanic.',
+			pullPrompt: 'Pull to discover random Wikipedia articles.'
+		}
 	},
 	errors: {
-		unauthorized: 'You must be signed in.',
-		invalidToken: 'Invalid authentication token.',
-		alreadyClaimed: 'Too slow! Someone else just claimed this card.',
-		claimFailed: 'Failed to claim card. Try again.',
-		pullFailed: 'Failed to pull cards. Try again.',
-		authFailed: 'Authentication failed. Please try again.'
+		pullFailed: 'Failed to pull articles. Try again.'
 	},
 	toast: {
-		claimed: 'Card claimed!',
-		released: 'Card released back into the wild.',
-		tooSlow: 'Too slow! Someone else just claimed this card.',
-		linkSent: 'Magic link sent! Check your email.'
+		pulled: 'Articles pulled!'
 	}
 } as const;

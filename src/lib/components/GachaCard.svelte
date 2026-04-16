@@ -1,50 +1,24 @@
 <script lang="ts">
-	import type { WikiCard } from '$lib/types';
+	import type { WikiArticle } from '$lib/types';
 	import { en } from '$lib/i18n/en';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
-		card: WikiCard;
-		mode?: 'pull' | 'inventory';
-		onClaim?: (card: WikiCard) => void;
-		onRelease?: (card: WikiCard) => void;
-		claiming?: boolean;
-		claimed?: boolean;
-		releasing?: boolean;
+		article: WikiArticle;
+		flippable?: boolean;
+		actions?: Snippet;
 	}
 
-	let {
-		card,
-		mode = 'pull',
-		onClaim,
-		onRelease,
-		claiming = false,
-		claimed = false,
-		releasing = false
-	}: Props = $props();
+	let { article, flippable = true, actions }: Props = $props();
 
-	let isFlipped = $state(false);
+	let manualFlip = $state(false);
+	let isFlipped = $derived(!flippable || manualFlip);
 	let expanded = $state(false);
 
-	$effect(() => {
-		if (mode === 'inventory') {
-			isFlipped = true;
-		}
-	});
-
 	function flip() {
-		if (mode === 'pull' && !isFlipped) {
-			isFlipped = true;
+		if (flippable && !manualFlip) {
+			manualFlip = true;
 		}
-	}
-
-	function handleClaim(e: MouseEvent) {
-		e.stopPropagation();
-		onClaim?.(card);
-	}
-
-	function handleRelease(e: MouseEvent) {
-		e.stopPropagation();
-		onRelease?.(card);
 	}
 
 	function toggleExpand(e: MouseEvent) {
@@ -53,78 +27,87 @@
 	}
 </script>
 
-<div class="card-container" class:is-flipped={isFlipped}>
-	<!-- Face-down: clickable to flip -->
+<div class="gacha-card-container" class:is-flipped={isFlipped}>
 	{#if !isFlipped}
-		<button
-			class="card card-back bg-neutral text-neutral-content flex w-full items-center justify-center border-2 border-base-content/20"
-			onclick={flip}
-			aria-label={en.gacha.revealHint}
-		>
-			<span class="select-none text-7xl font-bold">{en.gacha.revealHint}</span>
-		</button>
-	{:else}
-		<!-- Face-up: static content -->
-		<div class="card bg-base-200 border-2 border-base-content/20 p-5 animate-fade-in">
-			<h2
-				class="mb-3 border-b-2 border-base-content/20 pb-2 text-base font-bold uppercase tracking-widest"
+		<!-- Face-down card with hover-3d effect -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="hover-3d" onclick={flip}>
+			<div
+				class="card card-back bg-neutral text-neutral-content flex w-full items-center justify-center border-2 border-base-content/20 cursor-pointer"
 			>
-				{card.title}
-			</h2>
-
-			<div class="prose prose-sm max-w-none" class:line-clamp-6={!expanded}>
-				<p>{card.extract}</p>
+				<span class="select-none text-7xl font-bold">{en.shared.revealHint}</span>
 			</div>
+			<!-- 8 empty divs needed for the hover-3d effect -->
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</div>
+	{:else}
+		<!-- Revealed card with hover-3d effect -->
+		<div class="hover-3d animate-fade-in">
+			<div class="card bg-base-200 border-2 border-base-content/20 overflow-hidden">
+				{#if article.thumbnail}
+					<figure class="relative h-44 overflow-hidden">
+						<img
+							src={article.thumbnail}
+							alt={article.title}
+							class="h-full w-full object-cover"
+						/>
+						<div class="absolute inset-0 bg-gradient-to-t from-base-200 to-transparent"></div>
+					</figure>
+				{/if}
 
-			{#if card.extract && card.extract.length > 200}
-				<button
-					class="link link-hover mt-2 text-xs font-bold uppercase tracking-widest opacity-50"
-					onclick={toggleExpand}
-				>
-					{expanded ? en.gacha.collapse : en.gacha.readMore}
-				</button>
-			{/if}
+				<div class="card-body p-5">
+					<h2
+						class="card-title mb-1 border-b-2 border-base-content/20 pb-2 text-base font-bold uppercase tracking-widest"
+					>
+						{article.title}
+					</h2>
 
-			{#if mode === 'pull' && !claimed}
-				<button
-					class="btn btn-primary btn-block mt-4 tracking-[0.3em]"
-					onclick={handleClaim}
-					disabled={claiming}
-				>
-					{#if claiming}
-						<span class="loading loading-spinner loading-sm"></span>
+					<div class="prose prose-sm max-w-none" class:line-clamp-4={!expanded}>
+						<p>{article.extract}</p>
+					</div>
+
+					{#if article.extract && article.extract.length > 200}
+						<button
+							class="link link-hover mt-2 text-xs font-bold uppercase tracking-widest opacity-50"
+							onclick={toggleExpand}
+						>
+							{expanded ? en.shared.collapse : en.shared.readMore}
+						</button>
 					{/if}
-					{claiming ? en.common.loading : en.gacha.claimButton}
-				</button>
-			{:else if mode === 'pull' && claimed}
-				<div
-					class="btn btn-disabled btn-block mt-4 tracking-[0.3em]"
-				>
-					{en.common.claimed}
+
+					{#if actions}
+						<div class="card-actions mt-4">
+							{@render actions()}
+						</div>
+					{/if}
 				</div>
-			{/if}
-
-			{#if mode === 'inventory'}
-				<button
-					class="btn btn-outline btn-block mt-4 tracking-[0.3em]"
-					onclick={handleRelease}
-					disabled={releasing}
-				>
-					{#if releasing}
-						<span class="loading loading-spinner loading-sm"></span>
-					{/if}
-					{releasing ? en.common.loading : en.inventory.releaseButton}
-				</button>
-			{/if}
+			</div>
+			<!-- 8 empty divs needed for the hover-3d effect -->
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
 		</div>
 	{/if}
 </div>
 
 <style>
 	.card-back {
-		min-height: 16rem;
+		aspect-ratio: 1;
+		min-height: 20rem;
 		appearance: none;
 		padding: 0;
-		cursor: pointer;
 	}
 </style>
