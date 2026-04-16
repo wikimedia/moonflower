@@ -5,11 +5,7 @@
 </script>
 
 <div class="flex min-h-dvh flex-col">
-	<header class="flex items-center gap-4 border-b-2 border-base-content/20 px-4 py-3">
-		<a href="/" class="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">
-			{en.shared.back}
-		</a>
-		<span class="text-base-content/20">|</span>
+	<header class="border-b-2 border-base-content/20 px-4 py-3">
 		<h1 class="text-xs font-bold uppercase tracking-[0.3em]">{en.experiments.example.name}</h1>
 	</header>
 

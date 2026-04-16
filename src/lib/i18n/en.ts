@@ -16,7 +16,6 @@ export const en = {
 		revealHint: '?',
 		readMore: '[ READ MORE ]',
 		collapse: '[ COLLAPSE ]',
-		back: '← BACK',
 		arrow: '→',
 		noPulls: 'Tap pull to begin.',
 		emptyPull: 'No articles found. Try again.'
