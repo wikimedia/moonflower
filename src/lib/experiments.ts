@@ -8,12 +8,23 @@ import { en } from '$lib/i18n/en';
  * 1. Create a route directory at `src/routes/<slug>/`
  * 2. Add an entry to this array
  * 3. Add i18n strings under `en.experiments.<slug>`
+ *
+ * Use `getExperiments()` on the hub so name/description always match the
+ * current `en` module (avoids stale strings if a dev client bundle lags HMR).
  */
-export const experiments: Experiment[] = [
-	{
-		slug: 'example',
-		name: en.experiments.example.name,
-		description: en.experiments.example.description,
-		color: '#a78bfa'
-	}
-];
+export function getExperiments(): Experiment[] {
+	return [
+		{
+			slug: 'example',
+			name: en.experiments.example.name,
+			description: en.experiments.example.description,
+			color: '#a78bfa'
+		},
+		{
+			slug: 'different-themes',
+			name: en.experiments.differentThemes.name,
+			description: en.experiments.differentThemes.description,
+			color: '#f472b6'
+		}
+	];
+}

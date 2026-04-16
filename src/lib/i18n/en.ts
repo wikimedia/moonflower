@@ -25,6 +25,11 @@ export const en = {
 			name: 'EXAMPLE',
 			description: 'The classic pull-and-reveal gacha mechanic.',
 			pullPrompt: 'Pull to discover random Wikipedia articles.'
+		},
+		differentThemes: {
+			name: 'DIFFERENT THEMES',
+			description: '3 spread Wiki pull layout with tiktok themed inspirations',
+			iframeTitle: 'Different themes experiment'
 		}
 	},
 	errors: {
