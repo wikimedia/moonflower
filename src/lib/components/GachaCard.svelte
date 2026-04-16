@@ -13,7 +13,6 @@
 
 	let manualFlip = $state(false);
 	let isFlipped = $derived(!flippable || manualFlip);
-	let expanded = $state(false);
 
 	function flip() {
 		if (flippable && !manualFlip) {
@@ -21,10 +20,9 @@
 		}
 	}
 
-	function toggleExpand(e: MouseEvent) {
-		e.stopPropagation();
-		expanded = !expanded;
-	}
+	const wikiUrl = $derived(
+		`https://en.wikipedia.org/wiki/${encodeURIComponent(article.title.replace(/ /g, '_'))}`
+	);
 </script>
 
 <div class="gacha-card-container" class:is-flipped={isFlipped}>
@@ -49,8 +47,8 @@
 			<div></div>
 		</div>
 	{:else}
-		<!-- Revealed card with hover-3d effect -->
-		<div class="hover-3d animate-fade-in">
+		<!-- Revealed card — whole card links to Wikipedia article -->
+		<a href={wikiUrl} target="_blank" rel="noopener noreferrer" class="hover-3d animate-fade-in cursor-pointer block">
 			<div class="card bg-base-200 border-2 border-base-content/20 overflow-hidden">
 				{#if article.thumbnail}
 					<figure class="relative h-44 overflow-hidden">
@@ -70,18 +68,13 @@
 						{article.title}
 					</h2>
 
-					<div class="prose prose-sm max-w-none" class:line-clamp-4={!expanded}>
+					<div class="prose prose-sm max-w-none line-clamp-4">
 						<p>{article.extract}</p>
 					</div>
 
-					{#if article.extract && article.extract.length > 200}
-						<button
-							class="link link-hover mt-2 text-xs font-bold uppercase tracking-widest opacity-50"
-							onclick={toggleExpand}
-						>
-							{expanded ? en.shared.collapse : en.shared.readMore}
-						</button>
-					{/if}
+					<span class="mt-2 text-xs font-bold uppercase tracking-widest opacity-30">
+						{en.shared.readMore}
+					</span>
 
 					{#if actions}
 						<div class="card-actions mt-4">
@@ -99,7 +92,7 @@
 			<div></div>
 			<div></div>
 			<div></div>
-		</div>
+		</a>
 	{/if}
 </div>
 
