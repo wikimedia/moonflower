@@ -15,5 +15,11 @@ export const experiments: Experiment[] = [
 		name: en.experiments.example.name,
 		description: en.experiments.example.description,
 		color: '#a78bfa'
+	},
+	{
+		slug: 'fakeout',
+		name: en.experiments.fakeout.name,
+		description: en.experiments.fakeout.description,
+		color: '#22d3ee'
 	}
 ];
