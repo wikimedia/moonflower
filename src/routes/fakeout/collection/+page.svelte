@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import GachaCard from '$lib/components/GachaCard.svelte';
+	import FakeoutCard from '../components/FakeoutCard.svelte';
 	import { en } from '$lib/i18n/en';
 	import { fakeoutState } from '../state.svelte';
 
@@ -55,7 +55,7 @@
 			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 				{#each state.collection as entry (entry.cardId)}
 					<div class="animate-fade-in space-y-3">
-						<GachaCard article={entry.article} flippable={false} linkable={false} />
+						<FakeoutCard article={entry.article} flippable={false} linkable={false} />
 						<div class="border-2 border-base-content/20 bg-base-200/70 px-3 py-2 text-xs uppercase tracking-widest opacity-70">
 							{fmtDate(entry.takenAt)}
 						</div>
@@ -77,7 +77,7 @@
 			<div class="grid gap-4 md:grid-cols-2">
 				{#each state.fakeFalls as entry (entry.cardId)}
 					<div class="animate-fade-in space-y-3">
-						<GachaCard article={entry.article} flippable={false} linkable={false} />
+						<FakeoutCard article={entry.article} flippable={false} linkable={false} />
 						<div class="border-2 border-error bg-error/15 px-3 py-2 text-xs uppercase tracking-widest">
 							{entry.fakeReason}
 						</div>

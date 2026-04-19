@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import GachaCard from '$lib/components/GachaCard.svelte';
+	import FakeoutCard from '../components/FakeoutCard.svelte';
 	import { en } from '$lib/i18n/en';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import type { WikiArticle } from '$lib/types';
@@ -18,6 +18,7 @@
 	let countdownTimer: number | null = null;
 	let autoDealt = $state(false);
 	let showFakeWarning = $state(false);
+	let showNoPickWarning = $state(false);
 
 	const snapshot = $derived(fakeoutState.value);
 	const isRunActive = $derived(snapshot.status === 'active');
@@ -70,6 +71,14 @@
 
 	async function deal() {
 		if (dealing || runEnded) return;
+
+		const hasActiveUntouchedHand =
+			snapshot.activeHand.length > 0 && !snapshot.activeHand.some((card) => card.taken);
+		if (snapshot.totalDealt > 0 && hasActiveUntouchedHand && !snapshot.hasSeenNoPickWarning) {
+			fakeoutState.markNoPickWarningSeen();
+			showNoPickWarning = true;
+			return;
+		}
 
 		if (snapshot.status !== 'active') {
 			failed = false;
@@ -190,7 +199,7 @@
 						{#each snapshot.activeHand as card, i (card.id)}
 							<div class={`fakeout-drift ${rarityClass(card.rarity)} animate-stagger-in`} style={`animation-delay:${i * 70}ms`}>
 								<div class="relative">
-									<GachaCard
+									<FakeoutCard
 										article={card.article}
 										linkable={false}
 										onRevealClick={() => take(card)}
@@ -255,6 +264,24 @@
 				<div class="mt-6 flex justify-end">
 					<button class="btn btn-warning tracking-[0.2em]" onclick={() => (showFakeWarning = false)}>
 						{en.experiments.fakeout.fakeWarningConfirm}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if showNoPickWarning}
+		<div class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
+			<div class="w-full max-w-xl border-2 border-warning bg-base-100 p-5">
+				<h2 class="text-lg font-bold uppercase tracking-[0.3em] text-warning">
+					{en.experiments.fakeout.noPickWarningTitle}
+				</h2>
+				<p class="mt-4 text-sm uppercase tracking-widest opacity-80">
+					{en.experiments.fakeout.noPickWarningBody}
+				</p>
+				<div class="mt-6 flex justify-end">
+					<button class="btn btn-warning tracking-[0.2em]" onclick={() => (showNoPickWarning = false)}>
+						{en.experiments.fakeout.noPickWarningConfirm}
 					</button>
 				</div>
 			</div>
