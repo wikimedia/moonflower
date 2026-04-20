@@ -21,5 +21,11 @@ export const experiments: Experiment[] = [
 		name: en.experiments.fakeout.name,
 		description: en.experiments.fakeout.description,
 		color: '#22d3ee'
+	},
+	{
+		slug: 'gacha-stream',
+		name: en.experiments.gachaStream.name,
+		description: en.experiments.gachaStream.description,
+		color: '#34d399'
 	}
 ];

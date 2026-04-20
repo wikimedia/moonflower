@@ -61,6 +61,42 @@ export const en = {
 			noPickWarningConfirm: '[ GOT IT ]',
 			failureTitle: 'FAKE TAKEN',
 			failureBody: 'The illusion breaks. This run is over.'
+		},
+		gachaStream: {
+			name: 'GACHA STREAM',
+			description: 'Catch live Wikipedia edits as collectible cards.',
+			streamTag: 'LIVE STREAM',
+			collectionTag: 'COLLECTION',
+			viewCollection: '[ VIEW COLLECTION ]',
+			backToStream: '[ BACK TO STREAM ]',
+			statusConnecting: 'CONNECTING',
+			statusLive: 'LIVE',
+			statusReconnecting: 'RECONNECTING',
+			statusDisconnected: 'DISCONNECTED',
+			streamHint: 'Article edits glide across the screen. Let them pass to claim cards.',
+			collectionHint: 'Scroll your captured cards. Newest cards appear first.',
+			emptyCollection: 'No cards collected yet. Watch the stream to earn cards.',
+			editorPrefix: 'Edited by',
+			typePrefix: 'Change type',
+			unknownEditor: 'Unknown editor',
+			unknownType: 'unknown',
+			rewardPrefix: 'CARD ACQUIRED',
+			itemsLabel: 'Active',
+			cardsLabel: 'Cards',
+			burstReady: '[ STARBURST DROP ]',
+			burstLoading: 'SUMMONING...',
+			burstCooldown: 'RECHARGING',
+			burstProgress: 'Drop charge',
+			burstSource: 'Starburst Feed',
+			burstType: 'drop',
+			noSummary: 'No summary available yet.',
+			rarityLabel: 'Rarity',
+			rarities: {
+				common: 'COMMON',
+				rare: 'RARE',
+				epic: 'EPIC',
+				legendary: 'LEGENDARY'
+			}
 		}
 	},
 	errors: {
