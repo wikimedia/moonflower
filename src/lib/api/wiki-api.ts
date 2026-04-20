@@ -10,6 +10,8 @@ export interface FetchArticlesOptions {
 	sentences?: number;
 	/** Include page thumbnail when available (default true). */
 	withThumbnails?: boolean;
+	/** require images */
+	requireImages?: boolean;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface FetchArticlesOptions {
 export async function fetchRandomArticles(
 	options: FetchArticlesOptions = {}
 ): Promise<WikiArticle[]> {
-	const { count = 10, sentences = 3, withThumbnails = true } = options;
+	const { count = 10, sentences = 3, withThumbnails = true, requireImages = true } = options;
 
 	const params = new URLSearchParams({
 		action: 'query',
@@ -56,9 +58,8 @@ export async function fetchRandomArticles(
 		extract?: string;
 		thumbnail?: { source: string };
 	}>;
-
 	return pages
-		.filter((p) => p.extract && p.extract.trim().length > 0 && p.thumbnail?.source)
+		.filter((p) => p.extract && p.extract.trim().length > 0 && (!requireImages || p.thumbnail?.source))
 		.map((p) => ({
 			pageId: p.pageid,
 			title: p.title,
