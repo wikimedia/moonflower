@@ -26,6 +26,21 @@ export const en = {
 			description: 'The classic pull-and-reveal gacha mechanic.',
 			pullPrompt: 'Pull to discover random Wikipedia articles.'
 		},
+		testProbe: {
+			name: 'TEST PROBE',
+			description: 'Ping the backend test endpoint and inspect its TEST env value.',
+			headline: 'Backend Environment Probe',
+			hint: 'This experiment reads the TEST variable from /api/test.',
+			refreshButton: '[ REFRESH ]',
+			loading: 'CHECKING...',
+			error: 'Could not reach /api/test.',
+			endpointLabel: 'Endpoint',
+			variableLabel: 'Variable',
+			valueLabel: 'Value',
+			endpointValue: '/api/test',
+			variableName: 'TEST',
+			notSet: 'Not set'
+		},
 		fakeout: {
 			name: 'FAKEOUT',
 			description: 'Deal drifting cards, build a collection, avoid decoys.',
