@@ -4,9 +4,8 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"build:different-themes": "npm install --prefix \"maryyann/different themes\" && npm run build --prefix \"maryyann/different themes\" && node scripts/sync-different-themes.mjs",
 		"dev": "vite dev",
-		"build": "npm run build:different-themes && vite build",
+		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -22,6 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.2",
+		"@types/matter-js": "^0.20.2",
 		"@types/node": "^24",
 		"daisyui": "^5.5.19",
 		"eslint": "^10.2.0",
@@ -36,5 +36,8 @@
 		"typescript": "^6.0.2",
 		"typescript-eslint": "^8.58.1",
 		"vite": "^8.0.7"
+	},
+	"dependencies": {
+		"matter-js": "^0.20.0"
 	}
 }

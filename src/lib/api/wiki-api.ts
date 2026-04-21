@@ -57,12 +57,13 @@ export async function fetchRandomArticles(
 		thumbnail?: { source: string };
 	}>;
 
-	return pages
-		.filter((p) => p.extract && p.extract.trim().length > 0 && p.thumbnail?.source)
-		.map((p) => ({
-			pageId: p.pageid,
-			title: p.title,
-			extract: p.extract ?? '',
-			thumbnail: p.thumbnail?.source
-		}));
+	const qualified = pages.filter(
+		(p) => p.extract && p.extract.trim().length > 0 && p.thumbnail?.source
+	);
+	return qualified.map((p) => ({
+		pageId: p.pageid,
+		title: p.title,
+		extract: p.extract ?? '',
+		thumbnail: p.thumbnail?.source
+	}));
 }

@@ -37,5 +37,12 @@ export default defineConfig(
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}
+	},
+	{
+		files: ['src/lib/components/GachaCard.svelte'],
+		rules: {
+			// Card links only to external Wikipedia URLs, not in-app routes.
+			'svelte/no-navigation-without-resolve': 'off'
+		}
 	}
 );

@@ -21,10 +21,16 @@ export function getExperiments(): Experiment[] {
 			color: '#a78bfa'
 		},
 		{
-			slug: 'different-themes',
-			name: en.experiments.differentThemes.name,
-			description: en.experiments.differentThemes.description,
+			slug: '3-theme-spread',
+			name: en.experiments.threeThemeSpread.name,
+			description: en.experiments.threeThemeSpread.description,
 			color: '#f472b6'
+		},
+		{
+			slug: 'gatcha-drop',
+			name: en.experiments.gatchaDrop.name,
+			description: en.experiments.gatchaDrop.description,
+			color: '#c084fc'
 		}
 	];
 }
