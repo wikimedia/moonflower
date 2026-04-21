@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { en } from '$lib/i18n/en';
-	import { getExperiments } from '$lib/experiments';
+	import { experiments } from '$lib/experiments';
 	import ExperimentCard from '$lib/components/ExperimentCard.svelte';
 </script>
 
@@ -15,11 +15,11 @@
 			{en.hub.heading}
 		</h2>
 
-		{#if getExperiments().length === 0}
+		{#if experiments.length === 0}
 			<p class="text-sm uppercase tracking-widest opacity-30">{en.hub.empty}</p>
 		{:else}
 			<div class="space-y-4">
-				{#each getExperiments() as experiment, i (experiment.slug)}
+				{#each experiments as experiment, i (experiment.slug)}
 					<ExperimentCard {experiment} index={i} />
 				{/each}
 			</div>
