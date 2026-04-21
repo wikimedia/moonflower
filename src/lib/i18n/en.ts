@@ -182,6 +182,37 @@ export const en = {
 				epic: 'EPIC',
 				legendary: 'LEGENDARY'
 			}
+		},
+		walk: {
+			name: 'WALK',
+			description: 'Type a Wikipedia title, then watch a random neighbor walk settle on one final card.',
+			seedPrompt: 'Type a Wikipedia article title to begin the walk.',
+			inputLabel: 'Seed article',
+			inputPlaceholder: 'Start typing a title...',
+			suggestionsHeading: 'Suggestions',
+			suggestionsLoading: 'Searching...',
+			suggestionsEmpty: 'No matching titles.',
+			pickHint: 'Pick one suggestion or press Enter to use your typed title.',
+			startButton: '[ START WALK ]',
+			runningLabel: 'Walk running',
+			hopLabel: 'Hop',
+			ofLabel: 'of',
+			seedLabel: 'Seed',
+			currentLabel: 'Current article',
+			graphLabel: 'Node graph',
+			neighborsLabel: 'Nearby links',
+			pathLabel: 'Path taken',
+			pathHint: 'The highlighted route shows each hop from the seed to the final article.',
+			selectionLabel: 'Selecting next link',
+			settledLabel: 'Walk settled',
+			noNeighbors: 'No neighbors available here. Settling now.',
+			fetchError: 'Could not continue the walk. Try again.',
+			finalHeading: 'Final pull',
+			finalEmpty: 'No card was returned for the final title.',
+			finalLoading: 'Fetching final card...',
+			wikiLinkLabel: '[ READ ON WIKIPEDIA ]',
+			restartSameSeed: '[ WALK AGAIN ]',
+			chooseNewSeed: '[ NEW SEED ]'
 		}
 	},
 	errors: {
