@@ -3,13 +3,31 @@
 	import { en } from '$lib/i18n/en';
 	import type { Snippet } from 'svelte';
 
+	type ArticleLinkMode = 'wrapCard' | 'separate';
+
 	interface Props {
 		article: WikiArticle;
 		flippable?: boolean;
 		actions?: Snippet;
+		/** When `separate`, the card is not wrapped in an anchor so `actions` can contain buttons; use the Wikipedia link below the card body. */
+		articleLinkMode?: ArticleLinkMode;
+		/** Label for the Wikipedia link when `articleLinkMode` is `separate`. */
+		wikiLinkLabel?: string;
+		/** Optional heading above the extract (e.g. “Interesting quote”). */
+		extractLabel?: string;
+		/** Tailwind height class for the thumbnail figure (default `h-44`). */
+		figureClass?: string;
 	}
 
-	let { article, flippable = true, actions }: Props = $props();
+	let {
+		article,
+		flippable = true,
+		actions,
+		articleLinkMode = 'wrapCard',
+		wikiLinkLabel,
+		extractLabel,
+		figureClass = 'h-44'
+	}: Props = $props();
 
 	let manualFlip = $state(false);
 	let isFlipped = $derived(!flippable || manualFlip);
@@ -32,9 +50,9 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="hover-3d" onclick={flip}>
 			<div
-				class="card card-back bg-neutral text-neutral-content flex w-full items-center justify-center border-2 border-base-content/20 cursor-pointer"
+				class="card-back card flex w-full cursor-pointer items-center justify-center border-2 border-base-content/20 bg-neutral text-neutral-content"
 			>
-				<span class="select-none text-7xl font-bold">{en.shared.revealHint}</span>
+				<span class="text-7xl font-bold select-none">{en.shared.revealHint}</span>
 			</div>
 			<!-- 8 empty divs needed for the hover-3d effect -->
 			<div></div>
@@ -46,38 +64,44 @@
 			<div></div>
 			<div></div>
 		</div>
-	{:else}
+	{:else if articleLinkMode === 'wrapCard'}
 		<!-- Revealed card — whole card links to Wikipedia article -->
-		<a href={wikiUrl} target="_blank" rel="noopener noreferrer" class="hover-3d animate-fade-in cursor-pointer block">
-			<div class="card bg-base-200 border-2 border-base-content/20 overflow-hidden">
+		<a
+			href={wikiUrl}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="hover-3d block animate-fade-in cursor-pointer"
+		>
+			<div class="card overflow-hidden border-2 border-base-content/20 bg-base-200">
 				{#if article.thumbnail}
-					<figure class="relative h-44 overflow-hidden">
-						<img
-							src={article.thumbnail}
-							alt={article.title}
-							class="h-full w-full object-cover"
-						/>
+					<figure class="relative overflow-hidden {figureClass}">
+						<img src={article.thumbnail} alt={article.title} class="h-full w-full object-cover" />
 						<div class="absolute inset-0 bg-gradient-to-t from-base-200 to-transparent"></div>
 					</figure>
 				{/if}
 
 				<div class="card-body p-5">
 					<h2
-						class="card-title mb-1 border-b-2 border-base-content/20 pb-2 text-base font-bold uppercase tracking-widest"
+						class="mb-1 card-title border-b-2 border-base-content/20 pb-2 text-base font-bold tracking-widest uppercase"
 					>
 						{article.title}
 					</h2>
 
-					<div class="prose prose-sm max-w-none line-clamp-4">
+					{#if extractLabel}
+						<p class="mb-1 text-[10px] font-bold tracking-[0.25em] uppercase opacity-50">
+							{extractLabel}
+						</p>
+					{/if}
+					<div class="prose prose-sm line-clamp-4 max-w-none">
 						<p>{article.extract}</p>
 					</div>
 
-					<span class="mt-2 text-xs font-bold uppercase tracking-widest opacity-30">
+					<span class="mt-2 text-xs font-bold tracking-widest uppercase opacity-30">
 						{en.shared.readMore}
 					</span>
 
 					{#if actions}
-						<div class="card-actions mt-4">
+						<div class="mt-4 card-actions">
 							{@render actions()}
 						</div>
 					{/if}
@@ -93,6 +117,58 @@
 			<div></div>
 			<div></div>
 		</a>
+	{:else}
+		<!-- Revealed card — no wrapping anchor (for action buttons); Wikipedia link is separate -->
+		<div class="hover-3d block animate-fade-in">
+			<div class="card overflow-hidden border-2 border-base-content/20 bg-base-200">
+				{#if article.thumbnail}
+					<figure class="relative overflow-hidden {figureClass}">
+						<img src={article.thumbnail} alt={article.title} class="h-full w-full object-cover" />
+						<div class="absolute inset-0 bg-gradient-to-t from-base-200 to-transparent"></div>
+					</figure>
+				{/if}
+
+				<div class="card-body p-5">
+					<h2
+						class="mb-1 card-title border-b-2 border-base-content/20 pb-2 text-base font-bold tracking-widest uppercase"
+					>
+						{article.title}
+					</h2>
+
+					{#if extractLabel}
+						<p class="mb-1 text-[10px] font-bold tracking-[0.25em] uppercase opacity-50">
+							{extractLabel}
+						</p>
+					{/if}
+					<div class="prose prose-sm line-clamp-4 max-w-none">
+						<p>{article.extract}</p>
+					</div>
+
+					{#if actions}
+						<div class="mt-4 card-actions">
+							{@render actions()}
+						</div>
+					{/if}
+
+					<button
+						type="button"
+						class="btn mt-4 w-full border-2 border-base-content/20 font-bold tracking-widest uppercase btn-outline btn-sm"
+						onclick={() => window.open(wikiUrl, '_blank', 'noopener,noreferrer')}
+					>
+						{wikiLinkLabel ?? en.shared.readMore}
+					</button>
+				</div>
+			</div>
+			<!-- 8 empty divs needed for the hover-3d effect -->
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+			<div></div>
+		</div>
 	{/if}
 </div>
 

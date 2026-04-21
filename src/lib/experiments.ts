@@ -17,6 +17,18 @@ export const experiments: Experiment[] = [
 		color: '#a78bfa'
 	},
 	{
+		slug: '3-theme-spread',
+		name: en.experiments.threeThemeSpread.name,
+		description: en.experiments.threeThemeSpread.description,
+		color: '#f472b6'
+	},
+	{
+		slug: 'gatcha-drop',
+		name: en.experiments.gatchaDrop.name,
+		description: en.experiments.gatchaDrop.description,
+		color: '#c084fc'
+	},
+	{
 		slug: 'fakeout',
 		name: en.experiments.fakeout.name,
 		description: en.experiments.fakeout.description,

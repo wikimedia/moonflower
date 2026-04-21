@@ -6,6 +6,9 @@ import type { RequestHandler } from './$types';
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const USER_AGENT = 'Moonflower/1.0 (WikiGacha Experiment Platform; https://github.com/moonflower)';
 
+const WIKI_BATCH = 20;
+const MAX_MERGE_ROUNDS = 5;
+
 async function fetchArticlesByTitles(titles: string[], sentences: number): Promise<WikiArticle[]> {
 	const cleanTitles = Array.from(
 		new Set(
@@ -79,8 +82,22 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 
 	try {
-		const articles = await fetchRandomArticles({ count: count * 2, sentences, requireImages });
-		return json(articles.slice(0, count));
+		const seen = new Set<number>();
+		const merged: WikiArticle[] = [];
+		let rounds = 0;
+
+		while (merged.length < count && rounds < MAX_MERGE_ROUNDS) {
+			rounds++;
+			const batch = await fetchRandomArticles({ count: WIKI_BATCH, sentences, requireImages });
+			for (const a of batch) {
+				if (seen.has(a.pageId)) continue;
+				seen.add(a.pageId);
+				merged.push(a);
+				if (merged.length >= count) break;
+			}
+		}
+
+		return json(merged.slice(0, count));
 	} catch {
 		return json([], { status: 502 });
 	}
