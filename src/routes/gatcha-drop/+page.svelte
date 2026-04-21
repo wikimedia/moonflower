@@ -52,9 +52,10 @@
 		outcome = null;
 		phase = 'pull';
 		try {
-			const res = await fetch('/api/pull?count=20&sentences=3');
+			const res = await fetch('/api/pull?count=20&sentences=3&requireImages=true');
 			if (!res.ok) throw new Error();
-			const data = (await res.json()) as WikiArticle[];
+			const raw = (await res.json()) as WikiArticle[];
+			const data = raw.filter((a) => typeof a.thumbnail === 'string' && a.thumbnail.length > 0);
 			if (data.length === 0) {
 				toastStore.show(en.shared.emptyPull, 'info');
 				return;
