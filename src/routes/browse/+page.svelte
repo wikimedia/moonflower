@@ -239,7 +239,7 @@
 							{t.catchSuccess}
 						</p>
 					</div>
-					<div class="w-full max-w-xs">
+					<div class="w-full">
 						<GachaCard
 							article={encounterArticle}
 							flippable={false}
@@ -261,7 +261,7 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="encounter-modal" onclick={(e) => e.stopPropagation()}>
-			<div class="w-full max-w-xs">
+			<div class="w-full">
 				<GachaCard
 					article={viewingCapturedCard}
 					flippable={false}
@@ -367,7 +367,7 @@
 			bind:this={articleContainer}
 		>
 			{#if loading}
-				<div class="flex h-full items-center justify-center p-8">
+				<div class="flex min-h-full items-center justify-center p-8">
 					<p class="animate-pulse text-sm font-bold tracking-widest uppercase opacity-60">
 						{t.loading}
 					</p>
@@ -442,17 +442,28 @@
 		line-height: 1.75;
 	}
 
-	/* Style all Wikipedia content links */
+	/*
+	 * Nuclear reset: override ALL inline background/color styles Wikipedia injects.
+	 * Without !important these lose to inline style="" attributes on infoboxes,
+	 * table headers, nav boxes, hatnotes, etc.
+	 */
+	.wiki-article-body :global(*) {
+		background-color: transparent !important;
+		color: inherit !important;
+		border-color: rgba(255, 255, 255, 0.1) !important;
+	}
+
+	/* Restore specific colors after the nuclear reset */
 	.wiki-article-body :global(a) {
-		color: #4ade80;
+		color: #4ade80 !important;
 		text-decoration: none;
-		border-bottom: 1px solid rgba(74, 222, 128, 0.2);
+		border-bottom: 1px solid rgba(74, 222, 128, 0.2) !important;
 		transition: border-color 0.15s ease, color 0.15s ease;
 	}
 
 	.wiki-article-body :global(a:hover) {
-		color: #86efac;
-		border-bottom-color: rgba(74, 222, 128, 0.6);
+		color: #86efac !important;
+		border-bottom-color: rgba(74, 222, 128, 0.6) !important;
 	}
 
 	.wiki-article-body :global(h2) {
@@ -460,10 +471,10 @@
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: #d4edda;
+		color: #d4edda !important;
 		margin: 2rem 0 0.75rem;
 		padding-bottom: 0.5rem;
-		border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+		border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
 	}
 
 	.wiki-article-body :global(h3) {
@@ -471,7 +482,7 @@
 		font-weight: 700;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: #c8e6c8;
+		color: #c8e6c8 !important;
 		margin: 1.5rem 0 0.5rem;
 	}
 
@@ -481,7 +492,7 @@
 		font-size: 0.85rem;
 		font-weight: 700;
 		letter-spacing: 0.06em;
-		color: #a8cca8;
+		color: #a8cca8 !important;
 		margin: 1.25rem 0 0.4rem;
 	}
 
@@ -500,7 +511,7 @@
 	}
 
 	.wiki-article-body :global(blockquote) {
-		border-left: 3px solid #4ade80;
+		border-left: 3px solid #4ade80 !important;
 		padding-left: 1rem;
 		margin: 1rem 0;
 		opacity: 0.85;
@@ -516,25 +527,25 @@
 
 	.wiki-article-body :global(th),
 	.wiki-article-body :global(td) {
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		border: 1px solid rgba(255, 255, 255, 0.1) !important;
 		padding: 0.4rem 0.6rem;
 		text-align: left;
 	}
 
 	.wiki-article-body :global(th) {
-		background: rgba(255, 255, 255, 0.05);
+		background: rgba(255, 255, 255, 0.05) !important;
 		font-weight: 700;
 		font-size: 0.75rem;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: #a8cca8;
+		color: #a8cca8 !important;
 	}
 
 	.wiki-article-body :global(img) {
 		max-width: 100%;
 		height: auto;
 		margin: 0.5rem 0;
-		border: 2px solid rgba(255, 255, 255, 0.1);
+		border: 2px solid rgba(255, 255, 255, 0.1) !important;
 	}
 
 	.wiki-article-body :global(.thumb),
@@ -567,19 +578,53 @@
 	.wiki-article-body :global(.catlinks),
 	.wiki-article-body :global(.mw-authority-control),
 	.wiki-article-body :global(.external),
-	.wiki-article-body :global(.mw-references-wrap) {
+	.wiki-article-body :global(.mw-references-wrap),
+	.wiki-article-body :global(.mw-empty-elt),
+	.wiki-article-body :global(.mbox-small),
+	.wiki-article-body :global(.ambox),
+	.wiki-article-body :global(.ombox),
+	.wiki-article-body :global(.tmbox),
+	.wiki-article-body :global(.dmbox),
+	.wiki-article-body :global(.fmbox),
+	.wiki-article-body :global(.cmbox),
+	.wiki-article-body :global(.imbox),
+	.wiki-article-body :global(.plainlinks),
+	.wiki-article-body :global(.shortdescription),
+	.wiki-article-body :global(.hatnote) {
 		display: none !important;
 	}
 
 	/* Infobox styling */
 	.wiki-article-body :global(.infobox),
-	.wiki-article-body :global(.sidebar) {
+	.wiki-article-body :global(.sidebar),
+	.wiki-article-body :global(.wikitable) {
 		width: 100% !important;
 		float: none !important;
 		margin: 1rem 0 !important;
-		background: rgba(255, 255, 255, 0.03);
-		border: 2px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.03) !important;
+		border: 2px solid rgba(255, 255, 255, 0.1) !important;
 		font-size: 0.8rem;
+	}
+
+	/* Infobox sub-elements that Wikipedia styles with light backgrounds */
+	.wiki-article-body :global(.infobox th),
+	.wiki-article-body :global(.infobox .infobox-header),
+	.wiki-article-body :global(.infobox .infobox-above),
+	.wiki-article-body :global(.infobox .infobox-subheader),
+	.wiki-article-body :global(.sidebar-heading),
+	.wiki-article-body :global(.sidebar-above) {
+		background: rgba(255, 255, 255, 0.06) !important;
+		color: #d4edda !important;
+		font-weight: 700;
+	}
+
+	/* Gallery overrides */
+	.wiki-article-body :global(.gallery) {
+		background: transparent !important;
+	}
+
+	.wiki-article-body :global(.gallerybox) {
+		background: transparent !important;
 	}
 
 	.wiki-article-footer {
@@ -603,11 +648,10 @@
 		padding: 1rem;
 	}
 
+
 	.encounter-modal {
 		width: 100%;
-		max-width: 24rem;
-		max-height: 90dvh;
-		overflow-y: auto;
+		max-width: 36rem;
 		border: 2px solid rgba(255, 255, 255, 0.15);
 		background: #111;
 		padding: 1.5rem;
@@ -618,6 +662,28 @@
 	/* Hide the Wikipedia link button inside modal cards — we're already browsing Wikipedia */
 	.encounter-modal :global(.card-body > button:last-child) {
 		display: none;
+	}
+
+	/* Lay out GachaCard horizontally so cards expand in width, not height */
+	.encounter-modal :global(.card) {
+		flex-direction: row !important;
+	}
+
+	.encounter-modal :global(.card > figure) {
+		width: 10rem;
+		min-width: 10rem;
+		height: auto !important;
+		max-height: none !important;
+	}
+
+	.encounter-modal :global(.card > figure img) {
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.encounter-modal :global(.card > .card-body) {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.rustling-container {
