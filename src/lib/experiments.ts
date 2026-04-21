@@ -51,5 +51,11 @@ export const experiments: Experiment[] = [
 		name: en.experiments.walk.name,
 		description: en.experiments.walk.description,
 		color: '#fb7185'
+	},
+	{
+		slug: 'browse',
+		name: en.experiments.browse.name,
+		description: en.experiments.browse.description,
+		color: '#4ade80'
 	}
 ];
