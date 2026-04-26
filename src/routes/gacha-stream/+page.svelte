@@ -8,7 +8,7 @@
 	type StreamConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'disconnected';
 	type GameMode = 'stream' | 'collection';
 	type RewardPhase = 'center' | 'slide';
-	type TokenVariant = 'normal' | 'burst';
+	type TokenVariant = 'normal' | 'burst' | 'loading';
 	type CardRarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 	interface StreamToken {
@@ -38,6 +38,9 @@
 		collection: StoredCard[];
 		totalCaptured: number;
 		burstReadyAt: number;
+		burstIntroStartedAt?: number | null;
+		burstIntroCompleted?: boolean;
+		introDismissed?: boolean;
 	}
 
 	interface RecentChangeEvent {
@@ -62,12 +65,16 @@
 	const TARGET_CARDS_PER_SECOND = 0.1;
 	const CARD_BUCKET_CAPACITY = 2;
 	const REWARD_CENTER_MS = 1500;
-	const REWARD_TOTAL_MS = 5500;
+	const REWARD_TOTAL_MS = 6500;
+	const BURST_INTRO_LOCK_MS = 15_000;
 	const BURST_COOLDOWN_MS = 5 * 60 * 1000;
 	const BURST_TOTAL_CARDS = 50;
 	const BURST_PULL_LIMIT = 20;
 	const BURST_DROP_DURATION_MS = 20_000;
 	const BURST_INSERT_INTERVAL_MS = Math.round(BURST_DROP_DURATION_MS / BURST_TOTAL_CARDS);
+	const STARTUP_STREAM_QUEUE_TARGET = 6;
+	const STARTUP_STREAM_DISPATCH_MS = 620;
+	const LOADING_TOKEN_INTERVAL_MS = 900;
 	const ARTICLE_ENRICH_SENTENCES = 3;
 	const DEFAULT_EDITOR = en.experiments.gachaStream.unknownEditor;
 	const DEFAULT_CHANGE_TYPE = en.experiments.gachaStream.unknownType;
@@ -81,14 +88,23 @@
 	let rewardCard = $state<StoredCard | null>(null);
 	let rewardPhase = $state<RewardPhase | null>(null);
 	let rewardQueue = $state<StoredCard[]>([]);
+	let hydrated = $state(false);
 	let burstLoading = $state(false);
 	let burstReadyAt = $state(0);
+	let burstIntroStartedAt = $state<number | null>(null);
+	let burstIntroCompleted = $state(false);
+	let introDismissed = $state(false);
 	let clockMs = $state(Date.now());
+	let startupStreamReady = $state(false);
+	let startupStreamQueue = $state<RecentChangeEvent[]>([]);
+	let startupDispatchQueue = $state<RecentChangeEvent[]>([]);
 
 	let eventSource: EventSource | null = null;
 	let rewardCenterTimer: ReturnType<typeof setTimeout> | null = null;
 	let rewardCleanupTimer: ReturnType<typeof setTimeout> | null = null;
 	let clockTimer: ReturnType<typeof setInterval> | null = null;
+	let loadingTokenTimer: ReturnType<typeof setTimeout> | null = null;
+	let startupDispatchTimer: ReturnType<typeof setTimeout> | null = null;
 	let burstDispatchTimer: ReturnType<typeof setTimeout> | null = null;
 	let burstDispatchQueue = $state<WikiArticle[]>([]);
 	let acceptedEventTimes: number[] = [];
@@ -98,13 +114,27 @@
 	let burstDispatchActive = false;
 	const articleCache = new Map<string, WikiArticle>();
 
+	const burstIntroRemainingMs = $derived(
+		burstIntroCompleted || burstIntroStartedAt === null
+			? 0
+			: Math.max(0, burstIntroStartedAt + BURST_INTRO_LOCK_MS - clockMs)
+	);
+	const burstIntroActive = $derived(burstIntroRemainingMs > 0);
 	const burstRemainingMs = $derived(Math.max(0, burstReadyAt - clockMs));
 	const burstReady = $derived(burstRemainingMs === 0);
+	const burstButtonDisabled = $derived(
+		burstLoading || !burstReady || burstIntroActive || !startupStreamReady
+	);
+	const showIntroMessage = $derived(mode === 'stream' && !introDismissed);
 	const burstChargeProgress = $derived(
 		Math.min(1, Math.max(0, 1 - burstRemainingMs / BURST_COOLDOWN_MS))
 	);
 	const burstButtonLabel = $derived.by(() => {
 		if (burstLoading) return en.experiments.gachaStream.burstLoading;
+		if (!startupStreamReady) return en.experiments.gachaStream.burstBooting;
+		if (burstIntroActive) {
+			return `${en.experiments.gachaStream.burstWarmup} ${formatRemaining(burstIntroRemainingMs)}`;
+		}
 		if (burstReady) return en.experiments.gachaStream.burstReady;
 		return `${en.experiments.gachaStream.burstCooldown} ${formatRemaining(burstRemainingMs)}`;
 	});
@@ -114,17 +144,28 @@
 		mode,
 		collection,
 		totalCaptured,
-		burstReadyAt
+		burstReadyAt,
+		burstIntroStartedAt,
+		burstIntroCompleted,
+		introDismissed
 	}));
 
 	$effect(() => {
-		if (!browser) return;
+		if (!browser || !hydrated) return;
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+	});
+
+	$effect(() => {
+		if (burstIntroCompleted || burstIntroStartedAt === null) return;
+		if (clockMs >= burstIntroStartedAt + BURST_INTRO_LOCK_MS) {
+			burstIntroCompleted = true;
+		}
 	});
 
 	onMount(() => {
 		lastBudgetUpdateMs = Date.now();
 		hydrateFromStorage();
+		hydrated = true;
 		clockTimer = setInterval(() => {
 			clockMs = Date.now();
 		}, 250);
@@ -135,6 +176,8 @@
 		if (rewardCenterTimer) clearTimeout(rewardCenterTimer);
 		if (rewardCleanupTimer) clearTimeout(rewardCleanupTimer);
 		if (clockTimer) clearInterval(clockTimer);
+		if (loadingTokenTimer) clearTimeout(loadingTokenTimer);
+		if (startupDispatchTimer) clearTimeout(startupDispatchTimer);
 		if (burstDispatchTimer) clearTimeout(burstDispatchTimer);
 		disconnectStream('disconnected');
 	});
@@ -143,7 +186,11 @@
 		if (!browser) return;
 
 		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) return;
+		if (!raw) {
+			burstIntroStartedAt = Date.now();
+			burstIntroCompleted = false;
+			return;
+		}
 
 		try {
 			const parsed = JSON.parse(raw) as Partial<PersistedStateV1>;
@@ -176,14 +223,40 @@
 			if (typeof parsed.burstReadyAt === 'number') {
 				burstReadyAt = parsed.burstReadyAt;
 			}
+			if (typeof parsed.burstIntroCompleted === 'boolean') {
+				burstIntroCompleted = parsed.burstIntroCompleted;
+			}
+			if (typeof parsed.burstIntroStartedAt === 'number') {
+				burstIntroStartedAt = parsed.burstIntroStartedAt;
+			}
+			if (typeof parsed.introDismissed === 'boolean') {
+				introDismissed = parsed.introDismissed;
+			}
+
+			if (
+				parsed.burstIntroCompleted === undefined &&
+				parsed.burstIntroStartedAt === undefined
+			) {
+				burstIntroCompleted = true;
+				burstIntroStartedAt = null;
+			} else if (!burstIntroCompleted && burstIntroStartedAt === null) {
+				burstIntroStartedAt = Date.now();
+			}
 		} catch {
 			localStorage.removeItem(STORAGE_KEY);
+			burstIntroStartedAt = Date.now();
+			burstIntroCompleted = false;
 		}
 	}
 
 	function connectStream() {
 		if (!browser) return;
 
+		startupStreamReady = false;
+		startupStreamQueue = [];
+		startupDispatchQueue = [];
+		stopLoadingTokens();
+		startLoadingTokens();
 		disconnectStream('connecting');
 		eventSource = new EventSource(STREAM_URL);
 
@@ -214,6 +287,20 @@
 			if (change.namespace !== 0) return;
 			if (!change.title || typeof change.title !== 'string') return;
 
+			if (!startupStreamReady) {
+				const nextQueue = [...startupStreamQueue, change].slice(0, STARTUP_STREAM_QUEUE_TARGET);
+				startupStreamQueue = nextQueue;
+
+				if (nextQueue.length >= STARTUP_STREAM_QUEUE_TARGET) {
+					startupStreamReady = true;
+					startupDispatchQueue = nextQueue;
+					startupStreamQueue = [];
+					stopLoadingTokens();
+					startStartupDispatch();
+				}
+				return;
+			}
+
 			spawnToken(change, 'normal');
 		};
 	}
@@ -226,13 +313,50 @@
 		connectionStatus = nextStatus;
 	}
 
+	function startLoadingTokens() {
+		if (startupStreamReady || loadingTokenTimer) return;
+		spawnToken({ title: en.experiments.gachaStream.streamLoadingText }, 'loading');
+		loadingTokenTimer = setTimeout(() => {
+			loadingTokenTimer = null;
+			startLoadingTokens();
+		}, LOADING_TOKEN_INTERVAL_MS);
+	}
+
+	function stopLoadingTokens() {
+		if (!loadingTokenTimer) return;
+		clearTimeout(loadingTokenTimer);
+		loadingTokenTimer = null;
+	}
+
+	function startStartupDispatch() {
+		if (startupDispatchTimer || startupDispatchQueue.length === 0) return;
+		dispatchNextStartupToken();
+	}
+
+	function dispatchNextStartupToken() {
+		if (startupDispatchQueue.length === 0) {
+			startupDispatchTimer = null;
+			return;
+		}
+
+		const [nextChange, ...rest] = startupDispatchQueue;
+		startupDispatchQueue = rest;
+		spawnToken(nextChange, 'normal');
+
+		startupDispatchTimer = setTimeout(() => {
+			dispatchNextStartupToken();
+		}, STARTUP_STREAM_DISPATCH_MS);
+	}
+
 	function spawnToken(change: RecentChangeEvent, variant: TokenVariant) {
 		const now = Date.now();
 		const title = change.title ?? '';
 		const pageId = typeof change.page_id === 'number' ? change.page_id : hashFromString(title);
 		const seedBase = `${title}:${now}:${Math.random()}:${variant}`;
 		const seed = hashFromString(seedBase);
-		noteAcceptedEdit(now);
+		if (variant !== 'loading') {
+			noteAcceptedEdit(now);
+		}
 		const editsPerSecond = getRecentVelocity(now);
 		const durationMs = deriveDurationMs(editsPerSecond, seed);
 		const y = pickLane(now, seed);
@@ -255,14 +379,14 @@
 
 	function appendTokenWithoutBurstCulling(existing: StreamToken[], next: StreamToken) {
 		const combined = [...existing, next];
-		const normalTokens = combined.filter((token) => token.variant === 'normal');
-		if (normalTokens.length <= MAX_ACTIVE_TOKENS) return combined;
+		const pacedTokens = combined.filter((token) => token.variant !== 'burst');
+		if (pacedTokens.length <= MAX_ACTIVE_TOKENS) return combined;
 
-		const removeCount = normalTokens.length - MAX_ACTIVE_TOKENS;
+		const removeCount = pacedTokens.length - MAX_ACTIVE_TOKENS;
 		let removed = 0;
 
 		return combined.filter((token) => {
-			if (token.variant !== 'normal') return true;
+			if (token.variant === 'burst') return true;
 			if (removed < removeCount) {
 				removed += 1;
 				return false;
@@ -350,6 +474,10 @@
 		if (!token) return;
 
 		streamTokens = streamTokens.filter((entry) => entry.id !== tokenId);
+
+		if (token.variant === 'loading') {
+			return;
+		}
 
 		if (!shouldAwardCard(Date.now())) {
 			return;
@@ -478,8 +606,12 @@
 		mode = mode === 'stream' ? 'collection' : 'stream';
 	}
 
+	function dismissIntroMessage() {
+		introDismissed = true;
+	}
+
 	async function triggerBurstDrop() {
-		if (burstLoading || !burstReady) return;
+		if (burstButtonDisabled) return;
 
 		burstLoading = true;
 		burstReadyAt = Date.now() + BURST_COOLDOWN_MS;
@@ -588,10 +720,11 @@
 				<div
 					class="stream-token"
 					class:stream-token-burst={token.variant === 'burst'}
+					class:stream-token-loading={token.variant === 'loading'}
 					style={`--token-y:${token.y}%; --token-duration:${token.durationMs}ms; --spark-hue:${token.hue};`}
 					onanimationend={() => handleTokenExit(token.id)}
 				>
-					<span class="token-text">{token.title}</span>
+					<span class="token-text" class:token-text-loading={token.variant === 'loading'}>{token.title}</span>
 				</div>
 			{/each}
 		</div>
@@ -639,7 +772,7 @@
 
 		<button
 			onclick={triggerBurstDrop}
-			disabled={!burstReady || burstLoading}
+			disabled={burstButtonDisabled}
 			class="btn btn-secondary w-full uppercase tracking-[0.2em]"
 		>
 			{burstButtonLabel}
@@ -670,6 +803,22 @@
 					{en.experiments.gachaStream.rarityLabel}: {rarityLabel(rewardCard.rarity)}
 				</div>
 				<GachaCard article={rewardCard} flippable={false} />
+			</div>
+		</div>
+	{/if}
+
+	{#if showIntroMessage}
+		<div class="absolute inset-0 z-40 grid place-items-center bg-base-100/55 px-3 backdrop-blur-sm">
+			<div class="w-full max-w-md border-2 border-base-content bg-base-100 p-4 shadow-2xl">
+				<div class="mb-3 text-[10px] font-bold uppercase tracking-[0.3em] opacity-70">
+					{en.experiments.gachaStream.introTitle}
+				</div>
+				<p class="mb-4 text-sm leading-relaxed opacity-85">
+					{en.experiments.gachaStream.introBody}
+				</p>
+				<button onclick={dismissIntroMessage} class="btn btn-primary w-full uppercase tracking-[0.2em]">
+					{en.experiments.gachaStream.introDismiss}
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -709,6 +858,14 @@
 			burst-shimmer 0.9s linear infinite;
 	}
 
+	.stream-token-loading {
+		border-style: dashed;
+		border-color: hsl(var(--bc) / 0.18);
+		background: hsl(var(--b2) / 0.72);
+		opacity: 0.82;
+		z-index: 5;
+	}
+
 	.token-text {
 		display: block;
 		max-width: 72vw;
@@ -719,6 +876,12 @@
 		font-weight: 700;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
+	}
+
+	.token-text-loading {
+		letter-spacing: 0.08em;
+		text-transform: none;
+		opacity: 0.74;
 	}
 
 	.reward-frame {
