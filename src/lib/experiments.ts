@@ -35,6 +35,12 @@ export const experiments: Experiment[] = [
 		color: '#22d3ee'
 	},
 	{
+		slug: 'fakeout-swipe',
+		name: en.experiments.fakeoutSwipe.name,
+		description: en.experiments.fakeoutSwipe.description,
+		color: '#38bdf8'
+	},
+	{
 		slug: 'gacha-stream',
 		name: en.experiments.gachaStream.name,
 		description: en.experiments.gachaStream.description,
