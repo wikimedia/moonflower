@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import GachaCard from '$lib/components/GachaCard.svelte';
 	import { en } from '$lib/i18n/en';
 	import type { WikiArticle } from '$lib/types';
@@ -19,6 +19,7 @@
 		WALK_MIN_HOPS,
 		WALK_STEP_DELAY_MS
 	} from './lib/constants';
+	import { saveKeptIfNew } from './lib/collection';
 	import { fetchArticleNeighbors, fetchTitleSuggestions, pickRandomSubset } from './lib/walk-api';
 
 	type Phase = 'seed' | 'walking' | 'resolved' | 'error';
@@ -38,21 +39,28 @@
 		step: number;
 	}
 
+	interface GraphPoint {
+		x: number;
+		y: number;
+	}
+
 	const t = en.experiments.walk;
+	const WALK_INTRO_DISMISSED_KEY = 'moonflower-walk-intro-v1';
 
 	let phase = $state<Phase>('seed');
 	let query = $state('');
 	let suggestions = $state<string[]>([]);
 	let suggestionsLoading = $state(false);
+	let showIntroModal = $state(false);
 
 	let seedTitle = $state('');
 	let currentTitle = $state('');
 	let walkLength = $state(0);
-	let hopNumber = $state(0);
 	let statusLabel = $state('');
 
 	let finalArticle = $state<WikiArticle | null>(null);
 	let finalLoading = $state(false);
+	let showFinalModal = $state(false);
 	let errorMessage = $state('');
 
 	let graphNodes = $state<GraphNodeMeta[]>([]);
@@ -71,6 +79,7 @@
 	let cyInitializing = false;
 	const titleToNodeId = new Map<string, string>();
 	const edgeIds = new Set<string>();
+	const nodePositions = new Map<string, GraphPoint>();
 	let nextNodeId = 1;
 
 	const isPathSettled = $derived(phase === 'resolved');
@@ -138,15 +147,20 @@
 							'background-color': '#4a4a4a',
 							label: 'data(label)',
 							color: '#f5f5f5',
-							'font-size': '9px',
+							'font-size': '10px',
+							'min-zoomed-font-size': 8,
 							'text-wrap': 'wrap',
-							'text-max-width': '110px',
-							'text-valign': 'center',
+							'text-max-width': '120px',
+							'text-valign': 'bottom',
 							'text-halign': 'center',
-							'text-outline-width': 1,
-							'text-outline-color': '#1b1b1b',
-							width: 46,
-							height: 46,
+							'text-margin-y': 12,
+							'text-outline-width': 0,
+							'text-background-color': '#1b1b1b',
+							'text-background-opacity': 0.9,
+							'text-background-padding': '3px',
+							'text-background-shape': 'roundrectangle',
+							width: 54,
+							height: 54,
 							'border-width': 2,
 							'border-color': '#6a6a6a'
 						}
@@ -166,9 +180,9 @@
 							'background-color': '#00b4d8',
 							'border-color': '#90e0ef',
 							'border-width': 3,
-							width: 56,
-							height: 56,
-							'font-size': '10px'
+							width: 66,
+							height: 66,
+							'font-size': '11px'
 						}
 					},
 					{
@@ -202,7 +216,7 @@
 						}
 					}
 				],
-				layout: { name: 'grid' },
+				layout: { name: 'preset' },
 				minZoom: 0.15,
 				maxZoom: 2
 			});
@@ -233,6 +247,14 @@
 	onDestroy(() => {
 		cy?.destroy();
 		cy = null;
+	});
+
+	onMount(() => {
+		try {
+			showIntroModal = localStorage.getItem(WALK_INTRO_DISMISSED_KEY) !== '1';
+		} catch {
+			showIntroModal = true;
+		}
 	});
 
 	function randomInt(min: number, max: number): number {
@@ -281,21 +303,25 @@
 	function resetGraph(seed: string) {
 		titleToNodeId.clear();
 		edgeIds.clear();
+		nodePositions.clear();
 		nextNodeId = 1;
 		graphNodes = [];
 		graphEdges = [];
 		const seedId = ensureNode(seed, 0);
+		nodePositions.set(seedId, { x: 0, y: 0 });
 		currentNodeId = seedId;
 		flashingNodeId = '';
 		pathNodeIds = [seedId];
 		pathEdgeIds = [];
-		rebuildGraph({ animateLayout: true, anchorNodeId: seedId, centerCurrentAfterLayout: true });
+		rebuildGraph({ animateLayout: false, anchorNodeId: seedId });
+		cy?.zoom(1);
 		focusCurrentNode(false);
 	}
 
 	function clearGraph() {
 		titleToNodeId.clear();
 		edgeIds.clear();
+		nodePositions.clear();
 		nextNodeId = 1;
 		graphNodes = [];
 		graphEdges = [];
@@ -309,18 +335,15 @@
 	function rebuildGraph(options?: {
 		animateLayout?: boolean;
 		anchorNodeId?: string;
-		centerCurrentAfterLayout?: boolean;
+		spawnedNodeIds?: string[];
 	}) {
 		if (!cy) return;
 
 		const animateLayout = options?.animateLayout ?? true;
 		const anchorNodeId = options?.anchorNodeId ?? currentNodeId;
-		const centerCurrentAfterLayout = options?.centerCurrentAfterLayout ?? phase === 'walking';
 		const priorPositions = new Map<string, { x: number; y: number }>();
-		const priorNodeIds = new Set<string>();
 
 		cy.nodes().forEach((node) => {
-			priorNodeIds.add(node.id());
 			priorPositions.set(node.id(), { ...node.position() });
 		});
 
@@ -341,7 +364,6 @@
 
 		const nodeDefsToAdd: CytoscapeElementDefinition[] = [];
 		const edgeDefsToAdd: CytoscapeElementDefinition[] = [];
-		const newNodeIds: string[] = [];
 
 		cy.batch(() => {
 			for (const node of graphNodes) {
@@ -355,7 +377,6 @@
 							step: node.step
 						}
 					});
-					newNodeIds.push(node.id);
 				} else {
 					existing.data({
 						label: shortTitle(node.title),
@@ -393,69 +414,116 @@
 		const firstNode = cy.nodes().first();
 		const firstPos = firstNode.nonempty() ? firstNode.position() : undefined;
 		const anchorPos: { x: number; y: number } = anchorCandidate ?? firstPos ?? { x: 0, y: 0 };
+		assignSpawnPositions(anchorNodeId, options?.spawnedNodeIds ?? [], anchorPos);
 
 		cy.nodes().forEach((node) => {
 			const previous = priorPositions.get(node.id());
+			const targetPos = nodePositions.get(node.id()) ?? anchorPos;
 			if (previous) {
-				node.position(previous);
+				node.position(targetPos);
 				node.style('opacity', 1);
 				return;
 			}
 
-			// Spawn new nodes near the current anchor so expansion transitions feel continuous.
-			const angle = Math.random() * Math.PI * 2;
-			const radius = 42 + Math.random() * 26;
-			node.position({
-				x: anchorPos.x + Math.cos(angle) * radius,
-				y: anchorPos.y + Math.sin(angle) * radius
-			});
-			node.style('opacity', 0.25);
+			if (animateLayout) {
+				node.position(anchorPos);
+				node.style('opacity', 0.25);
+				node.animate({
+					position: targetPos,
+					style: { opacity: 1 },
+					duration: 380,
+					easing: 'ease-out-cubic'
+				});
+				return;
+			}
+
+			node.position(targetPos);
+			node.style('opacity', 1);
 		});
 
-		for (const nodeId of newNodeIds) {
-			const node = cy.getElementById(nodeId);
-			if (!node.empty()) {
-				node.animate({ style: { opacity: 1 }, duration: animateLayout ? 320 : 120 });
-			}
-		}
-
-		// Keep existing graph stable: only new nodes participate in expansion layout.
-		for (const nodeId of priorNodeIds) {
-			const node = cy.getElementById(nodeId);
-			if (!node.empty()) {
-				node.lock();
-			}
-		}
-
-		cy.layout({
-			name: 'cose',
-			animate: animateLayout,
-			animationDuration: animateLayout ? 420 : 0,
-			randomize: false,
-			fit: false,
-			padding: 60,
-			nodeRepulsion: 2600,
-			edgeElasticity: 100,
-			idealEdgeLength: 100,
-			gravity: 0.4,
-			numIter: 220
-		}).run();
-
-		if (animateLayout) {
-			cy.one('layoutstop', () => {
-				cy?.nodes().unlock();
-				refreshGraphClasses();
-				if (phase === 'resolved') {
-					focusPath(false);
-				} else if (centerCurrentAfterLayout) {
-					focusCurrentNode(true);
-				}
-			});
-		} else {
-			cy.nodes().unlock();
-		}
-
 		refreshGraphClasses();
+	}
+
+	function getGrowthDirection(anchorNodeId: string, fallback: GraphPoint): GraphPoint {
+		const pathIndex = pathNodeIds.lastIndexOf(anchorNodeId);
+		if (pathIndex > 0) {
+			const previousPos = nodePositions.get(pathNodeIds[pathIndex - 1]);
+			const anchorPos = nodePositions.get(anchorNodeId);
+			if (previousPos && anchorPos) {
+				const dx = anchorPos.x - previousPos.x;
+				const dy = anchorPos.y - previousPos.y;
+				const magnitude = Math.hypot(dx, dy);
+				if (magnitude > 0) {
+					return { x: dx / magnitude, y: dy / magnitude };
+				}
+			}
+		}
+
+		const magnitude = Math.hypot(fallback.x, fallback.y);
+		if (magnitude > 0) {
+			return { x: fallback.x / magnitude, y: fallback.y / magnitude };
+		}
+
+		return { x: 0, y: -1 };
+	}
+
+	function avoidNodeOverlap(candidate: GraphPoint, anchorPos: GraphPoint, anchorNodeId: string): GraphPoint {
+		let position = candidate;
+		for (let attempt = 0; attempt < 8; attempt += 1) {
+			const overlap = Array.from(nodePositions.entries()).find(([nodeId, point]) => {
+				if (nodeId === anchorNodeId) return false;
+				return Math.hypot(position.x - point.x, position.y - point.y) < 72;
+			});
+
+			if (!overlap) {
+				return position;
+			}
+
+			const dx = position.x - anchorPos.x;
+			const dy = position.y - anchorPos.y;
+			position = {
+				x: anchorPos.x + dx * 1.18,
+				y: anchorPos.y + dy * 1.18
+			};
+		}
+
+		return position;
+	}
+
+	function assignSpawnPositions(
+		anchorNodeId: string,
+		spawnedNodeIds: string[],
+		fallbackAnchorPos: GraphPoint
+	) {
+		if (!anchorNodeId || spawnedNodeIds.length === 0) return;
+
+		const anchorPos = nodePositions.get(anchorNodeId) ?? fallbackAnchorPos;
+		nodePositions.set(anchorNodeId, anchorPos);
+
+		const growthDirection = getGrowthDirection(anchorNodeId, { x: 0, y: -1 });
+		const baseAngle = Math.atan2(growthDirection.y, growthDirection.x);
+		const count = spawnedNodeIds.length;
+		const spread = count === 1 ? 0 : Math.min(Math.PI * 0.95, Math.max(Math.PI * 0.55, (count - 1) * 0.34));
+		const startAngle = baseAngle - spread / 2;
+		const stepAngle = count > 1 ? spread / (count - 1) : 0;
+
+		spawnedNodeIds.forEach((nodeId, index) => {
+			if (nodePositions.has(nodeId)) return;
+
+			const ring = Math.floor(index / 3);
+			const radius = 140 + ring * 26;
+			const angle = startAngle + stepAngle * index;
+			const target = avoidNodeOverlap(
+				{
+					x: anchorPos.x + Math.cos(angle) * radius,
+					y: anchorPos.y + Math.sin(angle) * radius
+				},
+				anchorPos,
+				anchorNodeId
+			);
+
+			nodePositions.set(nodeId, target);
+		});
 	}
 
 	function refreshGraphClasses() {
@@ -480,16 +548,92 @@
 
 	function focusCurrentNode(animated = true) {
 		if (!cy || !currentNodeId) return;
-		const node = cy.getElementById(currentNodeId);
+		const graph = cy;
+		const node = graph.getElementById(currentNodeId);
 		if (node.empty()) return;
+		const childNodeIds = Array.from(
+			new Set(
+				graphEdges
+					.filter((edge) => edge.sourceId === currentNodeId)
+					.map((edge) => edge.targetId)
+			)
+		);
+		const clusterNodeIds = [currentNodeId, ...childNodeIds];
+		const shouldFitCluster = childNodeIds.length > 0;
+		const padding = graph.width() < 480 ? 48 : 64;
+		const minReadableZoom = graph.width() < 480 ? 0.78 : 1;
+		const clusterPoints = clusterNodeIds
+			.map((id) => nodePositions.get(id) ?? graph.getElementById(id).position())
+			.filter((point): point is GraphPoint => point !== undefined);
+		const clusterBounds =
+			shouldFitCluster && clusterPoints.length > 0
+				? clusterPoints.reduce(
+					(bounds, point) => ({
+						minX: Math.min(bounds.minX, point.x),
+						maxX: Math.max(bounds.maxX, point.x),
+						minY: Math.min(bounds.minY, point.y),
+						maxY: Math.max(bounds.maxY, point.y)
+					}),
+					{ minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity }
+				)
+				: null;
+		const clusterWidth = clusterBounds ? clusterBounds.maxX - clusterBounds.minX + 120 : 0;
+		const clusterHeight = clusterBounds ? clusterBounds.maxY - clusterBounds.minY + 110 : 0;
+		const clusterCenter = clusterBounds
+			? {
+					x: (clusterBounds.minX + clusterBounds.maxX) / 2,
+					y: (clusterBounds.minY + clusterBounds.maxY) / 2 + 12
+			  }
+			: null;
+		const availableWidth = Math.max(graph.width() - padding * 2, 1);
+		const availableHeight = Math.max(graph.height() - padding * 2, 1);
+		const requiredZoom = clusterBounds
+			? Math.min(
+				availableWidth / Math.max(clusterWidth, 1),
+				availableHeight / Math.max(clusterHeight, 1),
+				graph.maxZoom()
+			)
+			: graph.zoom();
+		const targetZoom = Math.max(requiredZoom, graph.minZoom(), minReadableZoom);
+		const shouldAdjustZoom = shouldFitCluster && Math.abs(targetZoom - graph.zoom()) > 0.08;
+		const resolvedZoom = shouldAdjustZoom ? targetZoom : graph.zoom();
+		const targetPan = clusterCenter
+			? {
+					x: graph.width() / 2 - clusterCenter.x * resolvedZoom,
+					y: graph.height() / 2 - clusterCenter.y * resolvedZoom
+			  }
+			: null;
 
-		if (animated) {
-			cy.animate({
+		if (shouldFitCluster && animated) {
+			if (shouldAdjustZoom && targetPan) {
+				graph.animate({
+					pan: targetPan,
+					zoom: targetZoom,
+					duration: 420,
+					easing: 'ease-in-out-cubic'
+				});
+			} else if (targetPan) {
+				graph.animate({
+					pan: targetPan,
+					duration: 420,
+					easing: 'ease-in-out-cubic'
+				});
+			}
+		} else if (shouldFitCluster) {
+			if (shouldAdjustZoom) {
+				graph.zoom(targetZoom);
+			}
+			if (targetPan) {
+				graph.pan(targetPan);
+			}
+		} else if (animated) {
+			graph.animate({
 				center: { eles: node },
-				duration: 220
+				duration: 320,
+				easing: 'ease-in-out-cubic'
 			});
 		} else {
-			cy.center(node);
+			graph.center(node);
 		}
 	}
 
@@ -519,17 +663,34 @@
 		seedTitle = '';
 		currentTitle = '';
 		walkLength = 0;
-		hopNumber = 0;
 		statusLabel = '';
 		finalArticle = null;
 		finalLoading = false;
+		showFinalModal = false;
 		errorMessage = '';
 		clearGraph();
+	}
+
+	function addFinalToCollection() {
+		if (finalArticle) {
+			saveKeptIfNew(finalArticle);
+		}
+		showFinalModal = false;
+	}
+
+	function dismissIntroModal() {
+		showIntroModal = false;
+		try {
+			localStorage.setItem(WALK_INTRO_DISMISSED_KEY, '1');
+		} catch {
+			// Ignore storage failures and just hide the intro for this session.
+		}
 	}
 
 	async function fetchFinalCard(title: string, walkId: number): Promise<boolean> {
 		finalLoading = true;
 		finalArticle = null;
+		showFinalModal = false;
 		errorMessage = '';
 
 		try {
@@ -572,19 +733,20 @@
 		seedTitle = seed;
 		currentTitle = seed;
 		walkLength = randomInt(WALK_MIN_HOPS, WALK_MAX_HOPS);
-		hopNumber = 0;
 		statusLabel = t.selectionLabel;
 		finalArticle = null;
 		finalLoading = false;
+		showFinalModal = false;
 		errorMessage = '';
 
 		resetGraph(seed);
+		console.log('[walk] seed', seed);
 
 		let walkTitle = seed;
+		const visitedTitles = new Set<string>([seed]);
 
 		for (let step = 1; step <= walkLength; step += 1) {
 			if (walkId !== activeWalkId) return;
-			hopNumber = step;
 
 			let neighborsResult;
 			try {
@@ -604,18 +766,27 @@
 			walkTitle = neighborsResult.resolvedTitle;
 			currentTitle = walkTitle;
 			currentNodeId = ensureNode(walkTitle, step);
+			visitedTitles.add(walkTitle);
 
 			if (step === 1 && pathNodeIds.length === 1 && pathNodeIds[0] !== currentNodeId) {
 				pathNodeIds = [currentNodeId];
 			}
 
-			const subset = pickRandomSubset(neighborsResult.neighbors, VISIBLE_NEIGHBOR_COUNT);
+			const unvisitedNeighbors = neighborsResult.neighbors.filter(
+				(neighbor) => !visitedTitles.has(neighbor)
+			);
+			const subset = pickRandomSubset(unvisitedNeighbors, VISIBLE_NEIGHBOR_COUNT);
 			const subsetNodeIds = subset.map((neighbor) => ensureNode(neighbor, step));
 			for (const neighborId of subsetNodeIds) {
 				ensureEdge(currentNodeId, neighborId, step);
 			}
 
-			rebuildGraph({ animateLayout: true, anchorNodeId: currentNodeId, centerCurrentAfterLayout: true });
+			rebuildGraph({
+				animateLayout: true,
+				anchorNodeId: currentNodeId,
+				spawnedNodeIds: subsetNodeIds
+			});
+			focusCurrentNode(true);
 
 			if (subset.length === 0) {
 				statusLabel = t.noNeighbors;
@@ -646,6 +817,8 @@
 			pathEdgeIds = [...pathEdgeIds, pathEdge];
 			pathNodeIds = [...pathNodeIds, chosenNodeId];
 			walkTitle = chosenTitle;
+			visitedTitles.add(chosenTitle);
+			console.log('[walk] picked', { step, title: chosenTitle });
 			currentTitle = walkTitle;
 			currentNodeId = chosenNodeId;
 			flashingNodeId = '';
@@ -666,6 +839,7 @@
 		if (!finalFetchSucceeded) return;
 
 		phase = 'resolved';
+		showFinalModal = finalArticle !== null;
 		refreshGraphClasses();
 		focusPath(true);
 	}
@@ -681,6 +855,26 @@
 <div class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-base-200 p-4">
 	{#if phase === 'seed'}
 		<div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
+			{#if showIntroModal}
+				<div class="fixed inset-0 z-40 grid place-items-center bg-base-100/55 px-3 backdrop-blur-sm">
+					<div class="w-full max-w-md border-2 border-base-content bg-base-100 p-4 shadow-2xl">
+						<div class="mb-3 text-[10px] font-bold uppercase tracking-[0.3em] opacity-70">
+							{t.introTitle}
+						</div>
+						<p class="mb-4 text-sm leading-relaxed opacity-85">
+							{t.introBody}
+						</p>
+						<button
+							type="button"
+							onclick={dismissIntroModal}
+							class="btn btn-primary w-full uppercase tracking-[0.2em]"
+						>
+							{t.introDismiss}
+						</button>
+					</div>
+				</div>
+			{/if}
+
 			<div class="border-2 border-base-content/20 bg-base-100 p-4">
 				<p class="text-xs tracking-widest uppercase opacity-70">{t.seedPrompt}</p>
 			</div>
@@ -718,7 +912,7 @@
 
 				{#if suggestions.length > 0}
 					<ul class="menu max-h-60 gap-1 overflow-y-auto p-0">
-						{#each suggestions as suggestion}
+						{#each suggestions as suggestion (suggestion)}
 							<li>
 								<button
 									type="button"
@@ -739,29 +933,18 @@
 		</div>
 	{:else}
 		<div class="mx-auto flex w-full max-w-6xl flex-col gap-4">
-			<div class="grid gap-3 md:grid-cols-3">
-				<div class="border-2 border-base-content/20 bg-base-100 p-3">
-					<p class="text-[10px] tracking-widest uppercase opacity-60">{t.seedLabel}</p>
-					<p class="mt-1 text-sm font-bold tracking-wide">{seedTitle}</p>
-				</div>
-				<div class="border-2 border-base-content/20 bg-base-100 p-3">
-					<p class="text-[10px] tracking-widest uppercase opacity-60">{t.hopLabel}</p>
-					<p class="mt-1 text-sm font-bold tracking-wide">
-						{hopNumber} {t.ofLabel} {walkLength}
-					</p>
-				</div>
-				<div class="border-2 border-base-content/20 bg-base-100 p-3">
-					<p class="text-[10px] tracking-widest uppercase opacity-60">
-						{phase === 'walking' ? t.runningLabel : t.finalHeading}
-					</p>
-					<p class="mt-1 text-sm font-bold tracking-wide">{statusLabel}</p>
-				</div>
+			<div class="border-2 border-base-content/20 bg-base-100 p-3">
+				<p class="text-[10px] tracking-widest uppercase opacity-60">{t.seedLabel}</p>
+				<p class="mt-1 text-sm font-bold tracking-wide">{seedTitle}</p>
 			</div>
 
 			<div class="border-2 border-base-content/20 bg-base-100 p-4">
-				<p class="mb-3 text-[10px] tracking-widest uppercase opacity-60">{t.graphLabel}</p>
+				<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+					<p class="text-[10px] tracking-widest uppercase opacity-60">{t.graphLabel}</p>
+					<p class="text-[10px] font-bold tracking-widest uppercase opacity-60">{statusLabel}</p>
+				</div>
 				<div class="relative overflow-hidden border-2 border-base-content/20 bg-base-200">
-					<div bind:this={graphHost} class="h-[26rem] w-full"></div>
+					<div bind:this={graphHost} class="h-[34rem] w-full sm:h-[40rem]"></div>
 					{#if graphNodes.length === 0}
 						<div class="absolute inset-0 flex items-center justify-center p-4">
 							<p class="text-xs tracking-wide opacity-60">{t.pathHint}</p>
@@ -771,24 +954,16 @@
 				<p class="mt-3 text-xs opacity-60">
 					{isPathSettled ? t.pathHint : t.currentLabel}: {currentTitle}
 				</p>
+				{#if finalLoading}
+					<p class="mt-2 text-xs font-bold tracking-wide uppercase opacity-70">{t.finalLoading}</p>
+				{/if}
 			</div>
 
 			{#if phase === 'error'}
 				<p class="border-2 border-error px-3 py-2 text-sm text-error-content bg-error/80">{errorMessage}</p>
 			{/if}
 
-			{#if finalLoading}
-				<p class="text-sm font-bold tracking-wide uppercase">{t.finalLoading}</p>
-			{:else if finalArticle}
-				<div class="w-full max-w-md">
-					<GachaCard
-						article={finalArticle}
-						flippable={false}
-						articleLinkMode="separate"
-						wikiLinkLabel={t.wikiLinkLabel}
-					/>
-				</div>
-			{:else if errorMessage}
+			{#if !finalLoading && !finalArticle && errorMessage}
 				<p class="text-sm opacity-80">{errorMessage}</p>
 			{/if}
 
@@ -804,3 +979,26 @@
 		</div>
 	{/if}
 </div>
+
+{#if showFinalModal && finalArticle}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-neutral/80 p-4" role="presentation">
+		<div class="w-full max-w-md" role="presentation">
+			<GachaCard
+				article={finalArticle}
+				flippable={false}
+				articleLinkMode="separate"
+				wikiLinkLabel={t.wikiLinkLabel}
+			>
+				{#snippet actions()}
+					<button
+						type="button"
+						class="btn w-full border-2 border-base-content/20 font-bold tracking-widest uppercase btn-primary"
+						onclick={addFinalToCollection}
+					>
+						{t.addToCollection}
+					</button>
+				{/snippet}
+			</GachaCard>
+		</div>
+	</div>
+{/if}

@@ -161,6 +161,10 @@ export const en = {
 			streamHint: 'Article edits glide across the screen. Let them pass to claim cards.',
 			collectionHint: 'Scroll your captured cards. Newest cards appear first.',
 			emptyCollection: 'No cards collected yet. Watch the stream to earn cards.',
+			introTitle: 'WELCOME TO THE STREAM',
+			introBody:
+				'This experiment visualizes live Wikipedia edits. As articles drift past, each one has a chance to be collected as a unique Wikipedia card.',
+			introDismiss: '[ START WATCHING ]',
 			editorPrefix: 'Edited by',
 			typePrefix: 'Change type',
 			unknownEditor: 'Unknown editor',
@@ -170,10 +174,13 @@ export const en = {
 			cardsLabel: 'Cards',
 			burstReady: '[ STARBURST DROP ]',
 			burstLoading: 'SUMMONING...',
+			burstBooting: 'BUFFERING STREAM...',
+			burstWarmup: 'WARMING UP',
 			burstCooldown: 'RECHARGING',
 			burstProgress: 'Drop charge',
 			burstSource: 'Starburst Feed',
 			burstType: 'drop',
+			streamLoadingText: 'loading the wikipedia edit stream',
 			noSummary: 'No summary available yet.',
 			rarityLabel: 'Rarity',
 			rarities: {
@@ -186,6 +193,10 @@ export const en = {
 		walk: {
 			name: 'WALK',
 			description: 'Type a Wikipedia title, then watch a random neighbor walk settle on one final card.',
+			introTitle: 'WELCOME TO WALK',
+			introBody:
+				'Start from any Wikipedia seed article, then watch the experiment randomly walk through linked pages. When the walk settles, you keep the final article as a one-of-a-kind collectible card.',
+			introDismiss: '[ START WALKING ]',
 			seedPrompt: 'Type a Wikipedia article title to begin the walk.',
 			inputLabel: 'Seed article',
 			inputPlaceholder: 'Start typing a title...',
@@ -202,7 +213,7 @@ export const en = {
 			graphLabel: 'Node graph',
 			neighborsLabel: 'Nearby links',
 			pathLabel: 'Path taken',
-			pathHint: 'The highlighted route shows each hop from the seed to the final article.',
+			pathHint: 'The highlighted route shows each hop from the seed to the final article',
 			selectionLabel: 'Selecting next link',
 			settledLabel: 'Walk settled',
 			noNeighbors: 'No neighbors available here. Settling now.',
@@ -210,6 +221,7 @@ export const en = {
 			finalHeading: 'Final pull',
 			finalEmpty: 'No card was returned for the final title.',
 			finalLoading: 'Fetching final card...',
+			addToCollection: '[ ADD TO COLLECTION ]',
 			wikiLinkLabel: '[ READ ON WIKIPEDIA ]',
 			restartSameSeed: '[ WALK AGAIN ]',
 			chooseNewSeed: '[ NEW SEED ]'
