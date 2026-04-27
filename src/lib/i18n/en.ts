@@ -313,7 +313,22 @@ export const en = {
 			attackHint: 'Double tap an image, infobox, or media block to attack until it disappears.',
 			visitRuleLabel: 'Visit-only destruction',
 			visitRuleValue: 'Destroyed elements return after you change articles.',
-			footerWikiLine: 'Wikipedia text and media rendered from the mobile HTML API (CC BY-SA).'
+			footerWikiLine: 'Wikipedia text and media rendered from the mobile HTML API (CC BY-SA).',
+			rewardWheelTitle: 'SALVAGE WHEEL',
+			rewardSourceLabel: (label: string) => `Destroyed: ${label}`,
+			rewardWheelWin: 'CARD',
+			rewardWheelMiss: 'MISS',
+			rewardSpinning: 'Rolling for salvage...',
+			rewardWinTitle: 'CARD FOUND',
+			rewardLoseTitle: 'NO CARD THIS TIME',
+			rewardLoseBody: 'The wheel missed green. Keep breaking the page apart.',
+			rewardErrorTitle: 'SALVAGE FAILED',
+			rewardErrorBody: 'The wheel landed green, but the card could not be loaded.',
+			rewardSaved: 'The card was added to your crawler collection.',
+			rewardLoaded: 'The wheel landed green.',
+			rewardCloseButton: '[ CLOSE ]',
+			rewardWikiLinkLabel: '[ READ ON WIKIPEDIA ]',
+			rewardDefaultSource: 'Media target'
 		}
 	},
 	errors: {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
+	import GachaCard from '$lib/components/GachaCard.svelte';
 	import { en } from '$lib/i18n/en';
+	import type { WikiArticle } from '$lib/types';
 	import {
 		fetchArticleByTitle,
 		fetchRandomTitle,
@@ -8,6 +10,7 @@
 		titleToWikiPath,
 		type WikiCrawlerArticle
 	} from './lib/wiki-crawler-api';
+	import { saveKeptIfNew } from './lib/collection';
 
 	const t = en.experiments.wikiCrawler;
 	const DOUBLE_TAP_MS = 260;
@@ -17,6 +20,9 @@
 	const ATTACK_RANGE = 54;
 	const SCROLL_PADDING = 120;
 	const TARGET_REACH_RADIUS = 10;
+	const REWARD_WHEEL_SEGMENTS = 5;
+	const REWARD_SPIN_MS = 4000;
+	const REWARD_WIN_INDEX = 0;
 	const ATTACKABLE_BLOCK_SELECTOR = '.infobox, .thumb, .gallery, .wikitable, .sidebar, .tsingle, .tmulti';
 	const DEBUG_WIKI_CRAWLER = true;
 
@@ -52,6 +58,8 @@
 		label: string;
 	}
 
+	type RewardPhase = 'idle' | 'spinning' | 'won' | 'lost' | 'error';
+
 	let loading = $state(true);
 	let loadingLabel = $state<string>(t.loadingRandom);
 	let errorMsg = $state('');
@@ -60,6 +68,12 @@
 	let pendingLinkJumpTarget = $state<PendingLinkTarget | null>(null);
 	let activeCombatTarget = $state<ActiveCombatTarget | null>(null);
 	let destroyedElements = $state<string[]>([]);
+	let rewardPhase = $state<RewardPhase>('idle');
+	let rewardModalOpen = $state(false);
+	let rewardSpinDegrees = $state(0);
+	let rewardSourceLabel = $state('');
+	let rewardCard = $state<WikiArticle | null>(null);
+	let rewardSaved = $state(false);
 
 	let sprite = $state({
 		x: 180,
@@ -86,6 +100,7 @@
 	let lastLinkTapHref = '';
 	let lastLinkTapPoint: Point | null = null;
 	let highlightedAttackNode: HTMLElement | null = null;
+	let rewardSpinToken = 0;
 
 	const statusText = $derived.by(() => {
 		if (loading) return t.stateLoading;
@@ -119,6 +134,8 @@
 		console.debug(`[wiki-crawler] ${message}`, details ?? {});
 	}
 
+
+
 	function clearTapTimer(): void {
 		if (pendingTapTimer !== null) {
 			window.clearTimeout(pendingTapTimer);
@@ -130,6 +147,99 @@
 		lastLinkTapAt = 0;
 		lastLinkTapHref = '';
 		lastLinkTapPoint = null;
+	}
+
+	function closeRewardModal(): void {
+		rewardModalOpen = false;
+		rewardPhase = 'idle';
+		rewardCard = null;
+		rewardSaved = false;
+		rewardSourceLabel = '';
+	}
+
+	async function loadRewardCard(title: string): Promise<WikiArticle | null> {
+		const params = new URLSearchParams({
+			titles: title,
+			count: '1',
+			sentences: '3'
+		});
+
+		const response = await fetch(`/api/pull?${params.toString()}`);
+		if (!response.ok) {
+			throw new Error(`Reward API responded with ${response.status}`);
+		}
+
+		const cards = (await response.json()) as WikiArticle[];
+		return cards[0] ?? null;
+	}
+
+	function wheelRotationForIndex(index: number): number {
+		const segmentAngle = 360 / REWARD_WHEEL_SEGMENTS;
+		const sliceCenter = index * segmentAngle + segmentAngle / 2;
+		return 360 * 6 + (360 - sliceCenter);
+	}
+
+	async function triggerRewardRoll(sourceLabel: string): Promise<void> {
+		if (!article || rewardPhase === 'spinning') return;
+
+		rewardSpinToken += 1;
+		const token = rewardSpinToken;
+		const didWin = Math.random() < 0.2;
+		const missIndex = 1 + Math.floor(Math.random() * (REWARD_WHEEL_SEGMENTS - 1));
+		const landingIndex = didWin ? REWARD_WIN_INDEX : missIndex;
+
+		rewardSourceLabel = sourceLabel;
+		rewardCard = null;
+		rewardSaved = false;
+		rewardSpinDegrees = 0;
+		rewardPhase = 'spinning';
+		rewardModalOpen = true;
+		await tick();
+		await delay(32); // let the browser paint at 0deg before the transition fires
+		const finalDegrees = wheelRotationForIndex(landingIndex);
+		rewardSpinDegrees = finalDegrees;
+		debugLog('reward spin start', {
+			sourceLabel,
+			didWin,
+			landingIndex,
+			spinDegrees: finalDegrees
+		});
+
+		await delay(REWARD_SPIN_MS);
+		if (rewardSpinToken !== token) return;
+
+		if (!didWin) {
+			rewardPhase = 'lost';
+			debugLog('reward spin lost', { sourceLabel });
+			return;
+		}
+
+		try {
+			const card = await loadRewardCard(article.title);
+			if (rewardSpinToken !== token) return;
+			if (!card) {
+				rewardPhase = 'error';
+				debugLog('reward spin win but no card returned', { articleTitle: article.title });
+				return;
+			}
+
+			rewardCard = card;
+			saveKeptIfNew(card);
+			rewardSaved = true;
+			rewardPhase = 'won';
+			debugLog('reward spin won', {
+				articleTitle: article.title,
+				cardTitle: card.title,
+				pageId: card.pageId
+			});
+		} catch (error) {
+			if (rewardSpinToken !== token) return;
+			rewardPhase = 'error';
+			debugLog('reward spin error', {
+				articleTitle: article.title,
+				error: error instanceof Error ? error.message : String(error)
+			});
+		}
 	}
 
 	function delay(ms: number): Promise<void> {
@@ -456,6 +566,7 @@
 
 		await tick();
 		measureAttackables();
+		void triggerRewardRoll(target?.label ?? t.rewardDefaultSource);
 	}
 
 	async function loadArticle(title: string, label = t.loading): Promise<void> {
@@ -667,7 +778,7 @@
 	}
 
 	function handlePlayfieldPointerUp(event: PointerEvent): void {
-		if (loading || sprite.jumping) return;
+		if (loading || sprite.jumping || rewardModalOpen) return;
 		if (event.pointerType === 'mouse' && event.button !== 0) return;
 
 		const target = event.target as HTMLElement | null;
@@ -788,9 +899,66 @@
 			window.cancelAnimationFrame(animationFrame);
 			clearTapTimer();
 			clearCombatHighlight();
+			rewardSpinToken += 1;
 		};
 	});
 </script>
+
+{#if rewardModalOpen}
+	<div class="reward-overlay" onclick={rewardPhase === 'spinning' ? undefined : closeRewardModal} role="presentation">
+		<div class="reward-modal" onclick={(event) => event.stopPropagation()} role="presentation">
+			<p class="reward-kicker">{t.rewardWheelTitle}</p>
+
+			<div class="reward-wheel-wrap">
+				<div class="reward-pointer"></div>
+				<div class="reward-wheel" style={`transform: rotate(${rewardSpinDegrees}deg);`}></div>
+			</div>
+
+			{#if rewardPhase === 'spinning'}
+				<p class="reward-copy">{t.rewardSpinning}</p>
+			{:else if rewardPhase === 'won' && rewardCard}
+				<p class="reward-copy reward-copy-win">{t.rewardWinTitle}</p>
+				<p class="reward-copy-subtle">{rewardSaved ? t.rewardSaved : t.rewardLoaded}</p>
+				<div class="reward-card-shell">
+					<GachaCard
+						article={rewardCard}
+						flippable={false}
+						articleLinkMode="separate"
+						wikiLinkLabel={t.rewardWikiLinkLabel}
+						figureClass="h-56 min-h-[14rem] sm:h-64 sm:min-h-[16rem]"
+					/>
+				</div>
+				<button
+					type="button"
+					class="btn w-full border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
+					onclick={closeRewardModal}
+				>
+					{t.rewardCloseButton}
+				</button>
+			{:else if rewardPhase === 'lost'}
+				<p class="reward-copy">{t.rewardLoseTitle}</p>
+				<p class="reward-copy-subtle">{t.rewardLoseBody}</p>
+				<button
+					type="button"
+					class="btn w-full border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
+					onclick={closeRewardModal}
+				>
+					{t.rewardCloseButton}
+				</button>
+			{:else if rewardPhase === 'error'}
+				<p class="reward-copy">{t.rewardErrorTitle}</p>
+				<p class="reward-copy-subtle">{t.rewardErrorBody}</p>
+				<button
+					type="button"
+					class="btn w-full border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
+					onclick={closeRewardModal}
+				>
+					{t.rewardCloseButton}
+				</button>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 <div class="crawler-shell">
 	<div class="crawler-hud">
@@ -888,6 +1056,115 @@
 		background:
 			radial-gradient(circle at top, rgba(96, 165, 250, 0.12), transparent 32%),
 			linear-gradient(180deg, #0a111d 0%, #06090f 100%);
+	}
+
+	.reward-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 60;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+		background: rgba(2, 6, 23, 0.8);
+		backdrop-filter: blur(8px);
+	}
+
+	.reward-modal {
+		width: min(100%, 28rem);
+		max-height: min(92dvh, 48rem);
+		overflow-y: auto;
+		padding: 1.25rem;
+		border: 2px solid rgba(191, 219, 254, 0.14);
+		background: linear-gradient(180deg, rgba(10, 17, 29, 0.98) 0%, rgba(3, 7, 18, 0.98) 100%);
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+	}
+
+	.reward-kicker,
+	.reward-copy,
+	.reward-copy-subtle {
+		margin: 0;
+	}
+
+	.reward-kicker {
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: rgba(191, 219, 254, 0.72);
+	}
+
+	.reward-wheel-wrap {
+		position: relative;
+		width: 15rem;
+		height: 15rem;
+		margin: 1.25rem auto;
+	}
+
+	.reward-pointer {
+		position: absolute;
+		left: 50%;
+		top: -0.2rem;
+		z-index: 2;
+		width: 0;
+		height: 0;
+		margin-left: -0.8rem;
+		border-right: 0.8rem solid transparent;
+		border-left: 0.8rem solid transparent;
+		border-top: 1.5rem solid #e2e8f0;
+		filter: drop-shadow(0 0 8px rgba(226, 232, 240, 0.3));
+	}
+
+	.reward-wheel {
+		position: absolute;
+		inset: 0;
+		clip-path: circle(50%);
+		background: radial-gradient(circle at center, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.96) 28%, transparent 29%), conic-gradient(
+			#16a34a 0deg 72deg,
+			#b91c1c 72deg 144deg,
+			#991b1b 144deg 216deg,
+			#b91c1c 216deg 288deg,
+			#991b1b 288deg 360deg
+		);
+		transition: transform 4000ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.reward-wheel-wrap::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		border-radius: 50%;
+		border: 5px solid rgba(226, 232, 240, 0.22);
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+		pointer-events: none;
+	}
+
+
+
+	.reward-copy {
+		text-align: center;
+		font-size: 0.9rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: #eff6ff;
+	}
+
+	.reward-copy-win {
+		color: #86efac;
+	}
+
+	.reward-copy-subtle {
+		margin-top: 0.4rem;
+		text-align: center;
+		font-size: 0.8rem;
+		line-height: 1.5;
+		color: rgba(226, 232, 240, 0.72);
+	}
+
+	.reward-card-shell {
+		margin: 1rem 0;
 	}
 
 	.crawler-hud {
