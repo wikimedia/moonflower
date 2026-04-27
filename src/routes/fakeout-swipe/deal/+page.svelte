@@ -335,7 +335,7 @@
 				<div class="relative h-[36rem] w-full overflow-hidden rounded-none">
 					{#if previewCard}
 						{#key previewCard.id}
-							<div class={`pointer-events-none absolute inset-x-4 top-5 opacity-40 ${rarityClass(previewCard.rarity)}`}>
+							<div class={`pointer-events-none absolute inset-x-4 top-5 z-0 opacity-40 ${rarityClass(previewCard.rarity)}`}>
 								<div class="scale-[0.94] blur-[0.4px]">
 									<FakeoutCard article={previewCard.article} flippable={false} linkable={false} />
 								</div>
@@ -343,7 +343,7 @@
 						{/key}
 					{/if}
 
-					<div class="absolute inset-0 grid grid-cols-2 gap-4 px-1 pb-10 pt-2 pointer-events-none">
+					<div class="pointer-events-none absolute inset-0 z-20 grid grid-cols-2 gap-4 px-1 pb-10 pt-2">
 						<div
 							class="flex items-start justify-start"
 							style={`opacity:${rejectProgress}; transform: translate3d(${-dragOffsetX * 0.08}px, 0, 0);`}
@@ -364,7 +364,7 @@
 
 					{#key displayCard.id}
 						<div
-							class={`absolute inset-x-0 top-0 ${rarityClass(displayCard.rarity)}`}
+							class={`absolute inset-x-0 top-0 z-10 ${rarityClass(displayCard.rarity)}`}
 							role="group"
 							aria-label={en.experiments.fakeoutSwipe.currentCardTitle}
 							onpointerdown={handlePointerDown}
