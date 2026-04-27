@@ -290,6 +290,30 @@ export const en = {
 			duplicateEncounter: 'You already caught this one!',
 			catchSuccess: 'Gotcha! Article was caught!',
 			viewCaptured: '[ VIEW CARD ]'
+		},
+		wikiCrawler: {
+			name: 'WIKI CRAWLER',
+			description:
+				'Walk a sprite across rendered Wikipedia pages, dive through article links, and clear media from the current visit.',
+			loading: 'LOADING ARTICLE...',
+			loadingRandom: 'FINDING A RANDOM ARTICLE...',
+			errorFetch: 'Could not load that Wikipedia page. Try another jump.',
+			retryButton: '[ RETRY ]',
+			randomButton: '[ RANDOM ARTICLE ]',
+			statusLabel: 'State',
+			targetLabel: 'Target',
+			noTarget: 'None',
+			stateIdle: 'Exploring',
+			stateMoving: 'Walking',
+			stateCombat: 'Attacking',
+			stateJumping: 'Jumping',
+			stateLoading: 'Loading',
+			moveHint: 'Tap anywhere on the page to walk there.',
+			linkHint: 'Tap a green article link to walk over and jump into it.',
+			attackHint: 'Double tap an image, infobox, or media block to attack until it disappears.',
+			visitRuleLabel: 'Visit-only destruction',
+			visitRuleValue: 'Destroyed elements return after you change articles.',
+			footerWikiLine: 'Wikipedia text and media rendered from the mobile HTML API (CC BY-SA).'
 		}
 	},
 	errors: {
