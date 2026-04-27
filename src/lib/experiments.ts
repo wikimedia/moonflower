@@ -63,5 +63,11 @@ export const experiments: Experiment[] = [
 		name: en.experiments.browse.name,
 		description: en.experiments.browse.description,
 		color: '#4ade80'
+	},
+	{
+		slug: 'wiki-crawler',
+		name: en.experiments.wikiCrawler.name,
+		description: en.experiments.wikiCrawler.description,
+		color: '#60a5fa'
 	}
 ];
