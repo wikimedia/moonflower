@@ -763,14 +763,24 @@
 			}
 
 			if (walkId !== activeWalkId) return;
-			walkTitle = neighborsResult.resolvedTitle;
-			currentTitle = walkTitle;
-			currentNodeId = ensureNode(walkTitle, step);
-			visitedTitles.add(walkTitle);
+			const resolvedTitle = neighborsResult.resolvedTitle;
+			let rebuildAnchorNodeId = currentNodeId;
+			const extraSpawnedNodeIds: string[] = [];
 
-			if (step === 1 && pathNodeIds.length === 1 && pathNodeIds[0] !== currentNodeId) {
-				pathNodeIds = [currentNodeId];
+			if (resolvedTitle !== walkTitle) {
+				// This article is a redirect; expand the redirect node by linking it to the resolved title
+				visitedTitles.add(resolvedTitle);
+				const resolvedNodeId = ensureNode(resolvedTitle, step);
+				const redirectEdgeId = ensureEdge(currentNodeId, resolvedNodeId, step);
+				pathEdgeIds = [...pathEdgeIds, redirectEdgeId];
+				pathNodeIds = [...pathNodeIds, resolvedNodeId];
+				extraSpawnedNodeIds.push(resolvedNodeId);
+				currentNodeId = resolvedNodeId;
 			}
+
+			walkTitle = resolvedTitle;
+			currentTitle = walkTitle;
+			visitedTitles.add(walkTitle);
 
 			const unvisitedNeighbors = neighborsResult.neighbors.filter(
 				(neighbor) => !visitedTitles.has(neighbor)
@@ -783,8 +793,8 @@
 
 			rebuildGraph({
 				animateLayout: true,
-				anchorNodeId: currentNodeId,
-				spawnedNodeIds: subsetNodeIds
+				anchorNodeId: rebuildAnchorNodeId,
+				spawnedNodeIds: [...extraSpawnedNodeIds, ...subsetNodeIds]
 			});
 			focusCurrentNode(true);
 
