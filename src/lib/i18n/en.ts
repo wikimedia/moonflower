@@ -37,11 +37,11 @@ export const en = {
 			attributionLead: 'Text and images from',
 			attributionTrail: '(CC BY-SA).',
 			spreadWaiting: 'Cards are flipping into place…',
-			spreadSelect: 'Tap the card you want to keep.',
+			spreadSelect: 'Tap [ KEEP ] under the card you want.',
 			footerWikiLine: 'Text and images from Wikipedia (CC BY-SA).',
 			wikipediaLinkLabel: 'Wikipedia',
 			wikipediaHomeUrl: 'https://en.wikipedia.org/wiki/Main_Page',
-			shareButton: '[ SHARE ]',
+			shareButton: 'SHARE',
 			shareCopied: 'Copied to clipboard.',
 			shareShared: 'Shared.',
 			shareFailed: 'Could not share. Try again.',
@@ -52,6 +52,26 @@ export const en = {
 			funFactHeading: 'FUN FACT',
 			descriptionHeading: 'FROM THE ARTICLE',
 			mobileSwipeHint: 'Swipe sideways for the next card.',
+			slotReading: {
+				past: [
+					'In the past, you carried the same steady force as {title}. That discipline still protects you.',
+					'You once moved too fast and missed what mattered. That old mistake now sharpens your judgment.',
+					'What looked like repetition was actually training. Your patience was built one ordinary day at a time.',
+					'In your earlier chapter, {title} mirrored how you survived lean seasons. You learned to spot value before others did.'
+				],
+				present: [
+					'Right now, focus beats speed. Let {title} point you back to the one task that actually moves things forward.',
+					'Set one boundary today and keep it. Your energy will follow your priorities, not your intentions.',
+					'You are in a decision window: pick the option you can maintain, not the one that feels loudest.',
+					'Clarity first, complexity later. Keep the next move as simple as {title}.'
+				],
+				future: [
+					'Soon you will be asked to lead before you feel ready. Decide your principles now so pressure cannot choose for you.',
+					'Luck may open the door, but preparation keeps it open. Build your system before the pace increases.',
+					'A turning point is coming. Keep your standards high and your process plain.',
+					'An opportunity will arrive carrying extra weight. When {title} returns, read it as a cue to choose slowly.'
+				]
+			},
 			prevCard: '[ PREV ]',
 			nextCard: '[ NEXT ]',
 			spreadTheme: {
@@ -290,6 +310,18 @@ export const en = {
 			duplicateEncounter: 'You already caught this one!',
 			catchSuccess: 'Gotcha! Article was caught!',
 			viewCaptured: '[ VIEW CARD ]'
+		},
+		designCard: {
+			name: 'DESIGN CARD',
+			description:
+				'Prototype a Pokémon-ratio Wikipedia card layout—hero image, title, and one-line intro—for reuse in other experiments.',
+			pullPrompt: 'Pull a random illustrated article to preview the design card.',
+			pullButton: '[ PULL ]',
+			newCardButton: '[ NEW CARD ]',
+			pullingLabel: 'LOADING…',
+			idleHint: 'Tap pull to load a preview card.',
+			openArticleButton: '[ OPEN ARTICLE ]',
+			licenseNote: 'CC BY-SA.'
 		},
 		wikiCrawler: {
 			name: 'WIKI CRAWLER',

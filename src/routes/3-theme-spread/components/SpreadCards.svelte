@@ -1,37 +1,35 @@
 <script lang="ts">
 	import { en } from '$lib/i18n/en';
 	import type { WikiArticle } from '$lib/types';
-	import { wikiArticleUrl } from '../lib/wiki-url';
+	import DesignCardFace from '../../../../maryyann/designCard/DesignCardFace.svelte';
 
 	interface Props {
 		articles: WikiArticle[];
-		lines: [string, string, string];
-		labels: [string, string, string];
 		revealed: [boolean, boolean, boolean];
 		selectable: boolean;
 		selectedPageId: number | null;
 		cardBackLetter: string;
 		keepButton: string;
-		openArticleButton: string;
 		onPick: (pageId: number) => void;
 		onMobileFullyViewed?: () => void;
+		onViewIndexChange?: (index: number) => void;
 	}
 
 	let {
 		articles,
-		lines,
-		labels,
 		revealed,
 		selectable,
 		selectedPageId,
 		cardBackLetter,
 		keepButton,
-		openArticleButton,
 		onPick,
-		onMobileFullyViewed
+		onMobileFullyViewed,
+		onViewIndexChange
 	}: Props = $props();
 
 	const t = en.experiments.threeThemeSpread;
+	type SlotKey = 'past' | 'present' | 'future';
+	const slotByIndex: [SlotKey, SlotKey, SlotKey] = ['past', 'present', 'future'];
 
 	let isDesktop = $state(false);
 	let activeIndex = $state(0);
@@ -40,7 +38,6 @@
 	let visited = $state<[boolean, boolean, boolean]>([false, false, false]);
 	let mobileViewNotified = $state(false);
 	let touchStartX = $state<number | null>(null);
-	let hoverIndex = $state<number | null>(null);
 
 	$effect(() => {
 		if (typeof window === 'undefined') return;
@@ -59,17 +56,17 @@
 		void packKey;
 		activeIndex = 0;
 		desktopActiveIndex = 0;
-		mobileFaceUp = [false, false, false];
-		visited = [false, false, false];
 		mobileViewNotified = false;
 		if (typeof window === 'undefined') return;
 		const desktop = window.matchMedia('(min-width: 768px)').matches;
-		if (desktop || articles.length !== 3) return;
-		const t0 = window.setTimeout(() => {
-			mobileFaceUp = [true, false, false];
-			visited = [true, false, false];
-		}, 120);
-		return () => window.clearTimeout(t0);
+		if (desktop || articles.length !== 3) {
+			mobileFaceUp = [false, false, false];
+			visited = [false, false, false];
+			return;
+		}
+		/* First card shows the article face immediately (no tap to flip). */
+		mobileFaceUp = [true, false, false];
+		visited = [true, false, false];
 	});
 
 	$effect(() => {
@@ -77,6 +74,11 @@
 		mobileViewNotified = true;
 		onMobileFullyViewed?.();
 	});
+
+	$effect(() => {
+		onViewIndexChange?.(isDesktop ? desktopActiveIndex : activeIndex);
+	});
+
 
 	function goToMobileIndex(next: number) {
 		if (next < 0 || next > 2 || next === activeIndex) return;
@@ -104,11 +106,6 @@
 
 	function goPrev() {
 		goToMobileIndex(activeIndex <= 0 ? 2 : activeIndex - 1);
-	}
-
-	function goToDesktopIndex(i: number) {
-		if (i < 0 || i > 2 || i === desktopActiveIndex) return;
-		desktopActiveIndex = i;
 	}
 
 	function cycleDesktopIndex() {
@@ -172,144 +169,74 @@
 		if (d < 0) return { y: -14 * d, scale: 1 - 0.04 * Math.abs(d), z: 10 + i };
 		return { y: 16 * d, scale: 1 - 0.045 * d, z: 30 - i };
 	}
+
+	function fillTemplate(template: string, title: string, lede: string): string {
+		return template.replaceAll('{title}', title).replaceAll('{lede}', lede);
+	}
+
+	function pickReading(slot: SlotKey): string {
+		const pool = t.slotReading[slot];
+		return pool[Math.floor(Math.random() * pool.length)] ?? pool[0]!;
+	}
+
+	function readingFor(slot: SlotKey, article: WikiArticle): string {
+		return fillTemplate(pickReading(slot), article.title, '');
+	}
 </script>
 
 {#if isDesktop}
 	<div class="mx-auto flex w-full max-w-5xl flex-col gap-4">
-		<div class="flex flex-wrap justify-center gap-2">
-			{#each [0, 1, 2] as i (i)}
-				<button
-					type="button"
-					class="rounded-none border-2 px-3 py-2 text-center text-sm font-bold tracking-widest text-white uppercase transition-colors md:text-base {desktopActiveIndex ===
-					i
-						? 'border-white/50 bg-black'
-						: 'border-white/30 bg-neutral/70'}"
-					onclick={() => goToDesktopIndex(i)}
-				>
-					{labels[i]}
-				</button>
-			{/each}
-		</div>
-
 		<div
-			class="mx-auto grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-3 md:gap-4"
-			onmouseleave={() => (hoverIndex = null)}
+			class="mx-auto grid w-full max-w-5xl grid-cols-1 gap-8 xl:grid-cols-3 xl:gap-6"
 			role="presentation"
 		>
 			{#each articles as article, i (article.pageId)}
-				{@const href = wikiArticleUrl(article)}
 				{@const flipped = isMobileFlipped(i)}
 				{@const canPick = canPickCard(i)}
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<article
-					class="mx-auto w-full max-w-sm cursor-pointer"
+					class="mx-auto w-full max-w-xs cursor-pointer"
 					class:ring-2={desktopActiveIndex === i}
 					class:ring-primary={desktopActiveIndex === i}
 					class:ring-offset-2={desktopActiveIndex === i}
 					class:ring-offset-[hsl(60deg_12.5%_96.86%)]={desktopActiveIndex === i}
 					role="presentation"
 					tabindex="0"
-					onmouseenter={() => (hoverIndex = i)}
 					onclick={onDesktopArticleClick}
 					onkeydown={onDesktopArticleKeydown}
 				>
 					<div class="flip-scene">
 						<div class="flip-inner" class:flip-inner--revealed={flipped}>
 							<div
-								class="flip-face flip-face--back card flex items-center justify-center border-2 border-base-content/20 bg-neutral text-neutral-content"
+								class="flip-face flip-face--back card flex items-center justify-center border-2 border-white/20 bg-black text-white"
 								aria-hidden="true"
 							>
-								<span class="text-7xl font-bold select-none">{cardBackLetter}</span>
+								<span class="text-4xl font-bold select-none">{cardBackLetter}</span>
 							</div>
-							<div
-								class="flip-face flip-face--front card border-2 border-white/20 bg-neutral text-white"
-							>
-								{#if article.thumbnail}
-									<figure class="relative h-40 overflow-hidden">
-										<img
-											src={article.thumbnail}
-											alt=""
-											class="h-full w-full object-cover"
-											loading="lazy"
-										/>
-										<div class="absolute inset-0 bg-gradient-to-t from-neutral to-transparent"></div>
-									</figure>
-								{/if}
-								<div class="card-body flex flex-col gap-2 p-4 pt-2">
-									<span
-										class="text-xs font-bold tracking-widest text-white uppercase md:text-sm"
-										class:ring-2={hoverIndex === i}
-										class:ring-white={hoverIndex === i}
-										class:ring-offset-2={hoverIndex === i}
-										class:ring-offset-neutral={hoverIndex === i}
-									>
-										{labels[i]}
-									</span>
-									<h2
-										class="border-b-2 border-white/25 pb-2 text-sm font-bold tracking-widest text-white uppercase"
-									>
-										{article.title}
-									</h2>
-									<p class="text-[10px] font-bold tracking-widest text-white/90 uppercase">
-										{t.funFactHeading}
-									</p>
-									<p class="text-xs leading-snug text-white">{lines[i]}</p>
-									<div class="card-actions mt-2 flex flex-wrap gap-2">
-										<a
-											{href}
-											target="_blank"
-											rel="external noopener noreferrer"
-											class="btn btn-ghost btn-xs text-white uppercase tracking-widest hover:bg-white/10"
-											>{openArticleButton}</a
-										>
-										<button
-											type="button"
-											class="btn btn-primary btn-sm uppercase tracking-widest"
-											disabled={!canPick}
-											aria-pressed={selectedPageId === article.pageId}
-											aria-label={`${keepButton} ${article.title}`}
-											onclick={() => onPick(article.pageId)}
-										>
-											{keepButton}
-										</button>
-									</div>
-								</div>
+							<div class="flip-face flip-face--front bg-transparent">
+								<DesignCardFace {article} />
 							</div>
 						</div>
 					</div>
-					<div class="mt-3 border-t-2 border-base-content/15 px-1 pt-3">
-						<p class="text-[10px] font-bold tracking-widest text-black uppercase">
-							{t.descriptionHeading}
+					<div class="mt-3 border-t-2 border-base-content/15 px-4 pt-3">
+						<p class="text-xs leading-relaxed text-black">
+							{readingFor(slotByIndex[i]!, article)}
 						</p>
-						<p class="text-xs leading-relaxed text-black">{article.extract}</p>
 					</div>
 				</article>
 			{/each}
 		</div>
 	</div>
 {:else}
-	<div class="mx-auto flex w-full max-w-lg flex-col gap-4 px-1">
-		<div class="flex flex-wrap justify-center gap-2">
-			{#each [0, 1, 2] as i (i)}
-				<button
-					type="button"
-					class="rounded-none border-2 px-3 py-2 text-center text-sm font-bold tracking-widest text-white uppercase transition-colors md:text-base {activeIndex ===
-					i
-						? 'border-white/50 bg-black'
-						: 'border-white/30 bg-neutral/70'}"
-					onclick={() => goToMobileIndex(i)}
-				>
-					{labels[i]}
-				</button>
-			{/each}
-		</div>
-
-		<p class="text-center text-[10px] tracking-widest text-black uppercase">{t.mobileSwipeHint}</p>
+	<div class="mx-auto flex w-full max-w-[30rem] flex-col gap-0 px-4">
+		<p class="text-center text-[10px] tracking-widest text-black uppercase">
+			{t.mobileSwipeHint}
+		</p>
 
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<div
-			class="deck relative mx-auto mt-2 h-[min(72vh,30rem)] w-full max-w-sm touch-pan-y"
+			class="deck relative mx-auto mt-[8px] h-[min(88dvh,31rem)] w-full max-w-[30rem] touch-pan-y overflow-hidden"
 			role="application"
 			tabindex="0"
 			aria-label={t.mobileSwipeHint}
@@ -320,68 +247,22 @@
 		>
 			{#each [0, 1, 2] as i (i)}
 				{@const article = articles[i]!}
-				{@const href = wikiArticleUrl(article)}
 				{@const o = stackOffset(i)}
 				{@const flipped = isMobileFlipped(i)}
-				{@const canPick = canPickCard(i)}
 				<div
-					class="deck-card absolute top-6 left-1/2 w-[min(92vw,22rem)] transition-all duration-300 ease-out"
+					class="deck-card absolute top-0 left-1/2 w-full max-w-[30rem] transition-all duration-300 ease-out"
 					style="transform: translate(calc(-50% + 0px), {o.y}px) scale({o.scale}); z-index: {o.z};"
 				>
-					<div class="flip-scene flip-scene--mobile">
+					<div class="flip-scene">
 						<div class="flip-inner" class:flip-inner--revealed={flipped}>
 							<div
-								class="flip-face flip-face--back card flex items-center justify-center border-2 border-base-content/20 bg-neutral text-neutral-content"
+								class="flip-face flip-face--back card flex items-center justify-center border-2 border-white/20 bg-black text-white"
 								aria-hidden="true"
 							>
-								<span class="text-7xl font-bold select-none">{cardBackLetter}</span>
+								<span class="text-4xl font-bold select-none">{cardBackLetter}</span>
 							</div>
-							<div
-								class="flip-face flip-face--front card border-2 border-white/20 bg-neutral text-white"
-							>
-								{#if article.thumbnail}
-									<figure class="relative h-36 overflow-hidden">
-										<img
-											src={article.thumbnail}
-											alt=""
-											class="h-full w-full object-cover"
-											loading="lazy"
-										/>
-										<div
-											class="absolute inset-0 bg-gradient-to-t from-neutral to-transparent"
-										></div>
-									</figure>
-								{/if}
-								<div class="card-body flex flex-col gap-2 p-3 pt-2">
-									<h2
-										class="border-b-2 border-white/25 pb-1 text-xs font-bold tracking-widest text-white uppercase"
-									>
-										{article.title}
-									</h2>
-									<p class="text-[10px] font-bold tracking-widest text-white/90 uppercase">
-										{t.funFactHeading}
-									</p>
-									<p class="text-xs leading-snug text-white">{lines[i]}</p>
-									<div class="card-actions mt-1 flex flex-wrap gap-2">
-										<a
-											{href}
-											target="_blank"
-											rel="external noopener noreferrer"
-											class="btn btn-ghost btn-xs text-white uppercase tracking-widest hover:bg-white/10"
-											>{openArticleButton}</a
-										>
-										<button
-											type="button"
-											class="btn btn-primary btn-xs uppercase tracking-widest"
-											disabled={!canPick}
-											aria-pressed={selectedPageId === article.pageId}
-											aria-label={`${keepButton} ${article.title}`}
-											onclick={() => onPick(article.pageId)}
-										>
-											{keepButton}
-										</button>
-									</div>
-								</div>
+							<div class="flip-face flip-face--front bg-transparent">
+								<DesignCardFace {article} />
 							</div>
 						</div>
 					</div>
@@ -389,24 +270,23 @@
 			{/each}
 		</div>
 
-		<div class="mt-2 flex justify-center gap-2">
-			<button
-				type="button"
-				class="btn btn-outline btn-sm uppercase tracking-widest"
-				onclick={goPrev}>{t.prevCard}</button
-			>
-			<button
-				type="button"
-				class="btn btn-outline btn-sm uppercase tracking-widest"
-				onclick={goNext}>{t.nextCard}</button
-			>
+		<div class="mt-[-21px] flex justify-center gap-2">
+			{#each [0, 1, 2] as i (i)}
+				<span
+					class="h-2 w-2 rounded-full border border-black/40 {activeIndex === i
+						? 'bg-black'
+						: 'bg-black/20'}"
+					aria-hidden="true"
+				></span>
+			{/each}
 		</div>
 
-		<div class="border-t-2 border-base-content/15 px-1 py-4">
-			<p class="text-[10px] font-bold tracking-widest text-black uppercase">
-				{t.descriptionHeading}
+		<div class="mt-[18px] border-t-2 border-base-content/15 px-4 py-4">
+			<p class="text-sm leading-relaxed text-black">
+				{#if articles[activeIndex]}
+					{readingFor(slotByIndex[activeIndex]!, articles[activeIndex]!)}
+				{/if}
 			</p>
-			<p class="text-sm leading-relaxed text-black">{articles[activeIndex]?.extract}</p>
 		</div>
 	</div>
 {/if}
@@ -414,12 +294,8 @@
 <style>
 	.flip-scene {
 		perspective: 1200px;
-		aspect-ratio: 3 / 4;
+		aspect-ratio: 63 / 88;
 		width: 100%;
-	}
-
-	.flip-scene--mobile {
-		max-height: min(58vh, 22rem);
 	}
 
 	.flip-inner {
@@ -439,6 +315,7 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
+		border-radius: 20px !important;
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
 		overflow: hidden;
