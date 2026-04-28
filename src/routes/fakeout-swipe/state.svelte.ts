@@ -2,7 +2,7 @@ import type { WikiArticle } from '$lib/types';
 import type { DealCard, FakeFallRecord, FakeoutSwipeState } from './types';
 
 const STORAGE_KEY = 'moonflower.fakeout-swipe.state.v1';
-export const RUN_COOLDOWN_MS = 5 * 60 * 1000;
+export const RUN_COOLDOWN_MS = 30 * 1000;
 
 const initialState: FakeoutSwipeState = {
 	status: 'ready',
