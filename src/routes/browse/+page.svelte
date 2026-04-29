@@ -24,7 +24,7 @@
 	// Encounter state
 	let encounterActive = $state(false);
 	let encounterArticle = $state<WikiArticle | null>(null);
-	let encounterPhase = $state<'rustling' | 'reveal' | 'caught' | 'duplicate'>('rustling');
+	let encounterPhase = $state<'rustling' | 'reveal' | 'caught' | 'missed' | 'duplicate'>('rustling');
 	let catchRate = $derived(getCatchRate(pagesVisited));
 
 	// Inventory
@@ -161,10 +161,20 @@
 
 	function catchArticle(): void {
 		if (!encounterArticle) return;
+
+		// Roll against the catch rate — lower pages-visited means harder to catch
+		const roll = Math.random() * 100;
+		if (roll > catchRate) {
+			encounterPhase = 'missed';
+			setTimeout(dismissEncounter, 1200);
+			return;
+		}
+
 		if (!inventory.some((inv) => inv.pageId === encounterArticle!.pageId)) {
 			inventory = [...inventory, encounterArticle];
 		}
 		encounterPhase = 'caught';
+		setTimeout(dismissEncounter, 1200);
 	}
 
 	function dismissEncounter(): void {
@@ -247,91 +257,85 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="encounter-overlay" onclick={dismissEncounter}>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="encounter-modal" onclick={(e) => { if (encounterPhase === 'rustling' || encounterPhase === 'reveal') e.stopPropagation(); }}>
-			{#if encounterPhase === 'rustling'}
-				<div class="rustling-container">
-					<div class="grass-icon">🌿</div>
-					<p class="rustling-text">{t.grassRustling}</p>
-				</div>
-			{:else if encounterPhase === 'duplicate'}
-				<div class="flex flex-col items-center gap-4">
-					<p class="text-sm font-bold tracking-widest uppercase">{t.duplicateEncounter}</p>
-					<p class="text-xs tracking-wide opacity-60">{t.alreadyCaptured}</p>
-					<button
-						type="button"
-						class="btn w-full border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
-						onclick={dismissEncounter}
-					>
-						{t.captureDismiss}
-					</button>
-				</div>
-			{:else if encounterPhase === 'reveal'}
-				<div class="flex flex-col items-center gap-4">
-					<div class="encounter-header">
-						<p class="encounter-title">
-							{t.encounterFlavorPrefix}
-							<span class="encounter-article-name">{encounterArticle.title}</span>
-							{t.encounterFlavorSuffix}
-						</p>
+		{#if encounterPhase === 'caught'}
+			<p class="encounter-result-fade text-lg font-bold tracking-widest uppercase text-green-400">
+				{t.catchSuccess}
+			</p>
+		{:else if encounterPhase === 'missed'}
+			<p class="encounter-result-fade catch-miss-shake text-lg font-bold tracking-widest uppercase text-red-400">
+				{t.catchMiss}
+			</p>
+		{:else}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="encounter-modal" onclick={(e) => { if (encounterPhase === 'rustling' || encounterPhase === 'reveal') e.stopPropagation(); }}>
+				{#if encounterPhase === 'rustling'}
+					<div class="rustling-container">
+						<div class="grass-icon">🌿</div>
+						<p class="rustling-text">{t.grassRustling}</p>
 					</div>
-					<div class="encounter-card-preview">
-						{#if encounterArticle.thumbnail}
-							<img
-								src={encounterArticle.thumbnail}
-								alt={encounterArticle.title}
-								class="encounter-thumbnail"
-							/>
-						{/if}
-						<div class="encounter-info">
-							<h3 class="text-sm font-bold tracking-widest uppercase">
-								{encounterArticle.title}
-							</h3>
-							<p class="mt-1 line-clamp-3 text-xs opacity-70">
-								{encounterArticle.extract}
-							</p>
-						</div>
-					</div>
-					<div class="flex items-center gap-2 text-[10px] tracking-widest uppercase opacity-50">
-						<span>{t.captureChance}:</span>
-						<span class="font-bold">{catchRate}%</span>
-					</div>
-					<div class="flex w-full flex-col gap-2 sm:flex-row">
+				{:else if encounterPhase === 'duplicate'}
+					<div class="flex flex-col items-center gap-4">
+						<p class="text-sm font-bold tracking-widest uppercase">{t.duplicateEncounter}</p>
+						<p class="text-xs tracking-wide opacity-60">{t.alreadyCaptured}</p>
 						<button
 							type="button"
-							class="btn flex-1 border-2 border-green-500/40 font-bold tracking-widest uppercase text-green-400 btn-outline btn-sm hover:bg-green-500/20"
-							onclick={catchArticle}
-						>
-							{t.captureKeep}
-						</button>
-						<button
-							type="button"
-							class="btn flex-1 border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
+							class="btn w-full border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
 							onclick={dismissEncounter}
 						>
 							{t.captureDismiss}
 						</button>
 					</div>
-				</div>
-			{:else if encounterPhase === 'caught'}
-				<div class="flex flex-col items-center gap-4">
-					<div class="catch-success-flash">
-						<p class="text-lg font-bold tracking-widest uppercase text-green-400">
-							{t.catchSuccess}
-						</p>
+				{:else if encounterPhase === 'reveal'}
+					<div class="flex flex-col items-center gap-4">
+						<div class="encounter-header">
+							<p class="encounter-title">
+								{t.encounterFlavorPrefix}
+								<span class="encounter-article-name">{encounterArticle.title}</span>
+								{t.encounterFlavorSuffix}
+							</p>
+						</div>
+						<div class="encounter-card-preview">
+							{#if encounterArticle.thumbnail}
+								<img
+									src={encounterArticle.thumbnail}
+									alt={encounterArticle.title}
+									class="encounter-thumbnail"
+								/>
+							{/if}
+							<div class="encounter-info">
+								<h3 class="text-sm font-bold tracking-widest uppercase">
+									{encounterArticle.title}
+								</h3>
+								<p class="mt-1 line-clamp-3 text-xs opacity-70">
+									{encounterArticle.extract}
+								</p>
+							</div>
+						</div>
+						<div class="flex items-center gap-2 text-[10px] tracking-widest uppercase opacity-50">
+							<span>{t.captureChance}:</span>
+							<span class="font-bold">{catchRate}%</span>
+						</div>
+						<div class="flex w-full flex-col gap-2 sm:flex-row">
+							<button
+								type="button"
+								class="btn flex-1 border-2 border-green-500/40 font-bold tracking-widest uppercase text-green-400 btn-outline btn-sm hover:bg-green-500/20"
+								onclick={(e) => { e.stopPropagation(); catchArticle(); }}
+							>
+								{t.captureKeep}
+							</button>
+							<button
+								type="button"
+								class="btn flex-1 border-2 border-base-content/20 tracking-widest uppercase btn-outline btn-sm"
+								onclick={dismissEncounter}
+							>
+								{t.captureDismiss}
+							</button>
+						</div>
 					</div>
-					<div class="w-full">
-						<GachaCard
-							article={encounterArticle}
-							flippable={false}
-							articleLinkMode="separate"
-							figureClass="h-28"
-						/>
-					</div>
-				</div>
-			{/if}
-		</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/if}
 
@@ -829,9 +833,53 @@
 		padding: 0.75rem;
 	}
 
+	.encounter-result-fade {
+		animation: result-fade 1.2s ease-in forwards;
+	}
+
+	@keyframes result-fade {
+		0%, 50% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+
 	.catch-success-flash {
 		text-align: center;
 		animation: catch-flash 0.6s ease-out;
+	}
+
+	.catch-miss-shake {
+		text-align: center;
+		animation: catch-miss 0.5s ease-out;
+	}
+
+	@keyframes catch-miss {
+		0% {
+			transform: translateX(0);
+			opacity: 0;
+		}
+		15% {
+			transform: translateX(-8px);
+			opacity: 1;
+		}
+		30% {
+			transform: translateX(6px);
+		}
+		45% {
+			transform: translateX(-4px);
+		}
+		60% {
+			transform: translateX(3px);
+		}
+		75% {
+			transform: translateX(-1px);
+		}
+		100% {
+			transform: translateX(0);
+		}
 	}
 
 	@keyframes overlay-in {
