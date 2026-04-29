@@ -312,7 +312,13 @@ export const en = {
 			grassRustling: '... something rustled ...',
 			duplicateEncounter: 'You already caught this one!',
 			catchSuccess: 'Gotcha! Article was caught!',
-			viewCaptured: '[ VIEW CARD ]'
+			viewCaptured: '[ VIEW CARD ]',
+			introTitle: 'HOW BROWSING WORKS',
+			introBody:
+				'Wander through Wikipedia by clicking links. Some links hide collectible articles — watch for the ones that rustle.',
+			introRustleHint: 'Links that look like this contain something catchable:',
+			introExampleLink: 'rustling link',
+			introDismiss: '[ START BROWSING ]'
 		},
 		designCard: {
 			name: 'DESIGN CARD',

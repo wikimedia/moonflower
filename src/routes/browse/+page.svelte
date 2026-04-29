@@ -6,7 +6,6 @@
 	import {
 		fetchArticleByTitle,
 		fetchRandomTitle,
-		shouldTriggerEncounter,
 		getCatchRate,
 		type BrowseArticle
 	} from './lib/browse-api';
@@ -33,6 +32,59 @@
 	let viewingCapturedCard = $state<WikiArticle | null>(null);
 
 	let articleContainer = $state<HTMLDivElement | null>(null);
+
+	// Flag set by click handler when user clicks a rustling link
+	let pendingEncounter = false;
+
+	// Intro dialog — shown once per session
+	let showIntro = $state(true);
+
+	function dismissIntro(): void {
+		showIntro = false;
+	}
+
+	// Tag wiki links that "contain" gachas with a rustling animation
+	$effect(() => {
+		// Re-run when currentArticle or loading changes
+		if (loading || !currentArticle || !articleContainer) return;
+
+		// Wait a tick for the DOM to render the HTML content
+		requestAnimationFrame(() => {
+			if (!articleContainer) return;
+			const allLinks = articleContainer.querySelectorAll<HTMLAnchorElement>(
+				'.wiki-article-body a[href^="/wiki/"]'
+			);
+
+			// Filter to navigable links only (skip special pages)
+			const navigable = Array.from(allLinks).filter((a) => {
+				const href = a.getAttribute('href') ?? '';
+				const raw = decodeURIComponent(href.replace('/wiki/', '')).replace(/_/g, ' ');
+				if (raw.includes(':') && !raw.startsWith('The ') && !raw.startsWith('A ')) return false;
+				return true;
+			});
+
+			// Tag ~15-25% of links with rustling
+			for (const link of navigable) {
+				link.removeAttribute('data-rustle');
+				if (Math.random() < 0.08) {
+					link.setAttribute('data-rustle', '');
+					// Randomized animation properties for organic feel
+					link.style.setProperty('--rustle-delay', `${(Math.random() * 4).toFixed(2)}s`);
+					link.style.setProperty('--rustle-dur', `${(0.3 + Math.random() * 0.4).toFixed(2)}s`);
+					link.style.setProperty('--rustle-angle', `${(0.6 + Math.random() * 1.0).toFixed(2)}deg`);
+					link.style.setProperty(
+						'--rustle-shift',
+						`${(0.2 + Math.random() * 0.4).toFixed(2)}px`
+					);
+					// Randomize pause between bursts so links don't all move in sync
+					link.style.setProperty(
+						'--rustle-pause',
+						`${(3 + Math.random() * 5).toFixed(1)}s`
+					);
+				}
+			}
+		});
+	});
 
 	function articleToWiki(article: BrowseArticle): WikiArticle {
 		return {
@@ -64,8 +116,9 @@
 				articleContainer.scrollTop = 0;
 			}
 
-			// Check for encounter after navigating (not on the very first load)
-			if (pagesVisited > 1 && shouldTriggerEncounter(pagesVisited)) {
+			// Trigger encounter only when the user clicked a rustling link
+			if (pendingEncounter) {
+				pendingEncounter = false;
 				triggerEncounter(article);
 			}
 		} catch {
@@ -144,6 +197,8 @@
 				return;
 			}
 
+			// Only rustling links trigger gacha encounters
+			pendingEncounter = anchor.hasAttribute('data-rustle');
 			void loadArticle(rawTitle);
 		} else if (href.startsWith('#')) {
 			// Allow anchor jumps within the page
@@ -159,6 +214,33 @@
 		void loadRandom();
 	});
 </script>
+
+<!-- Intro explainer dialog -->
+{#if showIntro}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="encounter-overlay" onclick={dismissIntro}>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="encounter-modal" onclick={(e) => e.stopPropagation()}>
+			<div class="flex flex-col items-center gap-4 text-center">
+				<p class="text-sm font-bold tracking-widest uppercase">{t.introTitle}</p>
+				<p class="text-xs leading-relaxed tracking-wide opacity-70">{t.introBody}</p>
+				<div class="intro-rustle-demo">
+					<p class="mb-2 text-[10px] tracking-widest uppercase opacity-50">{t.introRustleHint}</p>
+					<span class="intro-rustle-link">{t.introExampleLink}</span>
+				</div>
+				<button
+					type="button"
+					class="btn mt-2 w-full border-2 border-green-500/40 font-bold tracking-widest uppercase text-green-400 btn-outline btn-sm hover:bg-green-500/20"
+					onclick={dismissIntro}
+				>
+					{t.introDismiss}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <!-- Encounter overlay -->
 {#if encounterActive && encounterArticle}
@@ -803,5 +885,58 @@
 		100% {
 			transform: scale(1);
 		}
+	}
+
+	/* ── Rustling link animation ── */
+	.wiki-article-body :global(a[data-rustle]) {
+		display: inline-block;
+		animation: link-rustle var(--rustle-dur, 0.35s) ease-in-out var(--rustle-delay, 0s) infinite alternate;
+		animation-play-state: running;
+	}
+
+	/*
+	 * The keyframes produce a subtle rock + micro-translate.
+	 * Each link gets unique --rustle-angle and --rustle-shift via JS,
+	 * so the forest of links never moves in lockstep.
+	 */
+	@keyframes link-rustle {
+		0% {
+			transform: rotate(0deg) translateX(0);
+		}
+		20% {
+			transform: rotate(var(--rustle-angle, 0.8deg)) translateX(var(--rustle-shift, 0.3px));
+		}
+		40% {
+			transform: rotate(calc(var(--rustle-angle, 0.8deg) * -0.6)) translateX(calc(var(--rustle-shift, 0.3px) * -0.5));
+		}
+		60% {
+			transform: rotate(calc(var(--rustle-angle, 0.8deg) * 0.4)) translateX(calc(var(--rustle-shift, 0.3px) * 0.3));
+		}
+		80% {
+			transform: rotate(calc(var(--rustle-angle, 0.8deg) * -0.2)) translateX(0);
+		}
+		100% {
+			transform: rotate(0deg) translateX(0);
+		}
+	}
+
+	/* ── Intro dialog demo link ── */
+	.intro-rustle-demo {
+		width: 100%;
+		padding: 1rem;
+		border: 2px solid rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.03);
+		margin-top: 0.25rem;
+	}
+
+	.intro-rustle-link {
+		display: inline-block;
+		color: #4ade80;
+		border-bottom: 1px solid rgba(74, 222, 128, 0.3);
+		font-size: 0.875rem;
+		letter-spacing: 0.04em;
+		--rustle-angle: 1deg;
+		--rustle-shift: 0.4px;
+		animation: link-rustle 0.4s ease-in-out infinite alternate;
 	}
 </style>
