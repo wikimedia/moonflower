@@ -312,6 +312,8 @@ export const en = {
 			grassRustling: '... something rustled ...',
 			duplicateEncounter: 'You already caught this one!',
 			catchSuccess: 'Gotcha! Article was caught!',
+			catchMiss: 'Oh no — it got away!',
+			catchMissBody: 'Better luck next time. Keep browsing to find more.',
 			viewCaptured: '[ VIEW CARD ]',
 			introTitle: 'HOW BROWSING WORKS',
 			introBody:
