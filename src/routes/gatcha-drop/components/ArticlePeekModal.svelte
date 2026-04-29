@@ -1,10 +1,8 @@
 <script lang="ts">
-	import GachaCard from '$lib/components/GachaCard.svelte';
+	import DesignCardFace from '../../../../maryyann/designCard/DesignCardFace.svelte';
 	import { en } from '$lib/i18n/en';
 	import type { WikiArticle } from '$lib/types';
 	import { trimArticleQuote } from '../../../../maryyann/gatcha-drop/quote';
-
-	const t = en.experiments.gatchaDrop;
 
 	interface Props {
 		article: WikiArticle | null;
@@ -12,7 +10,7 @@
 		onCollect: () => void;
 		collectDisabled: boolean;
 		collectLabel: string;
-		wikiLinkLabel: string;
+		leaveLabel: string;
 		closeLabel: string;
 	}
 
@@ -22,7 +20,7 @@
 		onCollect,
 		collectDisabled,
 		collectLabel,
-		wikiLinkLabel,
+		leaveLabel,
 		closeLabel
 	}: Props = $props();
 
@@ -38,37 +36,42 @@
 		role="presentation"
 	>
 		<div
-			class="relative max-h-[90dvh] w-full max-w-md overflow-y-auto border-0"
+			class="max-h-[90dvh] w-full max-w-md overflow-y-auto border-0"
 			onclick={(e) => e.stopPropagation()}
 			role="presentation"
 		>
-			<button
-				type="button"
-				class="btn btn-circle btn-ghost btn-sm absolute top-2 right-2 z-10 min-h-8 min-w-8 border-2 border-base-content/20 text-lg leading-none"
-				aria-label={closeLabel}
-				onclick={onClose}
-			>
-				×
-			</button>
-			<GachaCard
-				article={cardArticle}
-				flippable={false}
-				articleLinkMode="separate"
-				{wikiLinkLabel}
-				extractLabel={t.articleQuoteHeading}
-				figureClass="h-56 min-h-[14rem] sm:h-64 sm:min-h-[16rem]"
-			>
-				{#snippet actions()}
-					<button
-						type="button"
-						class="btn w-full border-2 border-base-content/20 font-bold tracking-widest uppercase btn-primary"
-						disabled={collectDisabled}
-						onclick={onCollect}
-					>
-						{collectLabel}
-					</button>
-				{/snippet}
-			</GachaCard>
+			<div class="mb-2 flex justify-end">
+				<button
+					type="button"
+					class="btn btn-circle btn-ghost btn-sm min-h-8 min-w-8 text-lg leading-none"
+					aria-label={closeLabel}
+					onclick={onClose}
+				>
+					×
+				</button>
+			</div>
+			<div class="border-2 border-base-content/20 p-3">
+				<DesignCardFace article={cardArticle} />
+			</div>
+			<div class="mt-3">
+				<button
+					type="button"
+					class="btn gatcha-drop-collect-btn w-full border-2 border-base-content/20 font-bold tracking-widest uppercase"
+					disabled={collectDisabled}
+					onclick={onCollect}
+				>
+					{collectLabel}
+				</button>
+			</div>
+			<div class="mt-2">
+				<button
+					type="button"
+					class="btn gatcha-drop-leave-btn w-full border-2 border-base-content/20 font-bold tracking-widest uppercase"
+					onclick={onClose}
+				>
+					{leaveLabel}
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}
