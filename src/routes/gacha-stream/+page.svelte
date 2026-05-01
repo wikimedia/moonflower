@@ -1101,49 +1101,55 @@
 
 	.tap-effect {
 		position: absolute;
-		width: 2.8rem;
-		height: 2.8rem;
-		border-radius: 50%;
+		width: 2.6rem;
+		height: 2.6rem;
+		border-radius: 50% !important;
 		transform: translate(-50%, -50%);
 		pointer-events: none;
-		z-index: 50;
-		border: 1.5px solid hsl(var(--bc) / 0.32);
+		z-index: 25;
+		background: radial-gradient(circle, rgb(255 255 255 / 0.18) 0%, rgb(255 255 255 / 0.05) 55%, transparent 72%);
+		border: 2px solid rgb(255 255 255 / 0.65);
 		animation: tap-ripple 0.55s ease-out forwards;
 	}
 
 	.tap-effect-hit {
-		width: 4rem;
-		height: 4rem;
-		border: 2.5px solid hsl(var(--p) / 0.88);
+		width: 3.75rem;
+		height: 3.75rem;
+		border-radius: 50% !important;
+		background: radial-gradient(circle, rgb(255 210 60 / 0.55) 0%, rgb(255 160 30 / 0.2) 50%, transparent 72%);
+		border: 3px solid rgb(255 210 60 / 0.95);
 		box-shadow:
-			0 0 0.7rem hsl(var(--p) / 0.5),
-			inset 0 0 0.4rem hsl(var(--p) / 0.18);
+			0 0 1.2rem rgb(255 200 40 / 0.75),
+			0 0 2.5rem rgb(255 150 20 / 0.4);
 		animation: tap-hit-burst 0.68s ease-out forwards;
 	}
 
 	@keyframes tap-ripple {
 		0% {
-			transform: translate(-50%, -50%) scale(0.2);
-			opacity: 0.45;
+			transform: translate(-50%, -50%) scale(0.25);
+			opacity: 0.9;
+		}
+		60% {
+			opacity: 0.6;
 		}
 		100% {
-			transform: translate(-50%, -50%) scale(3);
+			transform: translate(-50%, -50%) scale(2.8);
 			opacity: 0;
 		}
 	}
 
 	@keyframes tap-hit-burst {
 		0% {
-			transform: translate(-50%, -50%) scale(0.18);
+			transform: translate(-50%, -50%) scale(0.2);
 			opacity: 1;
-			filter: brightness(1.6);
+			filter: brightness(1.8);
 		}
-		35% {
-			opacity: 0.92;
-			filter: brightness(2);
+		40% {
+			opacity: 1;
+			filter: brightness(2.2);
 		}
 		100% {
-			transform: translate(-50%, -50%) scale(5);
+			transform: translate(-50%, -50%) scale(4.5);
 			opacity: 0;
 			filter: brightness(1);
 		}
