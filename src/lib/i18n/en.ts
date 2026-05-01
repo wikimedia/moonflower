@@ -244,7 +244,7 @@ export const en = {
 			burstProgress: 'Drop charge',
 			burstSource: 'Starburst Feed',
 			burstType: 'drop',
-			streamLoadingText: 'loading the wikipedia edit stream',
+			streamLoadingText: 'loading wikipedia edit stream',
 			noSummary: 'No summary available yet.',
 			rarityLabel: 'Rarity',
 			rarities: {
