@@ -227,7 +227,7 @@ export const en = {
 			emptyCollection: 'No cards collected yet. Watch the stream to earn cards.',
 			introTitle: 'WELCOME TO THE STREAM',
 			introBody:
-				'This experiment visualizes live Wikipedia edits. As articles drift past, each one has a chance to be collected as a unique Wikipedia card.',
+				'This experiment visualizes live Wikipedia edits. As articles drift past, you can tap them for a chance to collect it as a unique Wikipedia card.',
 			introDismiss: '[ START WATCHING ]',
 			editorPrefix: 'Edited by',
 			typePrefix: 'Change type',
@@ -244,7 +244,7 @@ export const en = {
 			burstProgress: 'Drop charge',
 			burstSource: 'Starburst Feed',
 			burstType: 'drop',
-			streamLoadingText: 'loading the wikipedia edit stream',
+			streamLoadingText: 'loading wikipedia edit stream',
 			noSummary: 'No summary available yet.',
 			rarityLabel: 'Rarity',
 			rarities: {

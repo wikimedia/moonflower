@@ -43,6 +43,13 @@
 		introDismissed?: boolean;
 	}
 
+	interface TapEffect {
+		id: string;
+		x: number;
+		y: number;
+		hit: boolean;
+	}
+
 	interface RecentChangeEvent {
 		title?: string;
 		server_name?: string;
@@ -62,12 +69,15 @@
 	const LANE_TRY_COUNT = 24;
 	const VELOCITY_WINDOW_MS = 10_000;
 	const MAX_SPEED_FACTOR = 8;
-	const TARGET_CARDS_PER_SECOND = 0.1;
+	const TARGET_CARDS_PER_SECOND = 0.015;
+	const CLICK_CARDS_PER_SECOND = 0.1;
+	const CLICK_HIT_RADIUS_PX = 30;
+	const TAP_EFFECT_DURATION_MS = 700;
 	const CARD_BUCKET_CAPACITY = 2;
 	const REWARD_CENTER_MS = 1500;
 	const REWARD_TOTAL_MS = 6500;
 	const BURST_INTRO_LOCK_MS = 15_000;
-	const BURST_COOLDOWN_MS = 5 * 60 * 1000;
+	const BURST_COOLDOWN_MS = 1 * 60 * 1000;
 	const BURST_TOTAL_CARDS = 50;
 	const BURST_PULL_LIMIT = 20;
 	const BURST_DROP_DURATION_MS = 20_000;
@@ -95,10 +105,12 @@
 	let burstIntroCompleted = $state(false);
 	let introDismissed = $state(false);
 	let clockMs = $state(Date.now());
+	let tapEffects = $state<TapEffect[]>([]);
 	let startupStreamReady = $state(false);
 	let startupStreamQueue = $state<RecentChangeEvent[]>([]);
 	let startupDispatchQueue = $state<RecentChangeEvent[]>([]);
 
+	let streamAreaEl = $state<HTMLElement | null>(null);
 	let eventSource: EventSource | null = null;
 	let rewardCenterTimer: ReturnType<typeof setTimeout> | null = null;
 	let rewardCleanupTimer: ReturnType<typeof setTimeout> | null = null;
@@ -111,6 +123,8 @@
 	let rewardRunning = false;
 	let cardBudget = 1;
 	let lastBudgetUpdateMs = Date.now();
+	let clickCardBudget = 1;
+	let lastClickBudgetUpdateMs = Date.now();
 	let burstDispatchActive = false;
 	const articleCache = new Map<string, WikiArticle>();
 
@@ -164,6 +178,7 @@
 
 	onMount(() => {
 		lastBudgetUpdateMs = Date.now();
+		lastClickBudgetUpdateMs = Date.now();
 		hydrateFromStorage();
 		hydrated = true;
 		clockTimer = setInterval(() => {
@@ -576,6 +591,85 @@
 		return false;
 	}
 
+	function shouldAwardCardOnClick(now: number) {
+		const elapsedMs = Math.max(0, now - lastClickBudgetUpdateMs);
+		lastClickBudgetUpdateMs = now;
+		clickCardBudget = Math.min(
+			CARD_BUCKET_CAPACITY,
+			clickCardBudget + (elapsedMs / 1000) * CLICK_CARDS_PER_SECOND
+		);
+
+		if (clickCardBudget >= 1) {
+			clickCardBudget -= 1;
+			return true;
+		}
+
+		return false;
+	}
+
+	async function tryAwardCardForToken(token: StreamToken) {
+		if (!shouldAwardCardOnClick(Date.now())) return;
+
+		const enriched = await fetchArticleByTitle(token.title);
+		const card = toCard(token, enriched);
+		collection = [card, ...collection];
+		totalCaptured += 1;
+		enqueueReward(card);
+	}
+
+	function handleStreamClick(event: MouseEvent) {
+		if (!streamAreaEl) return;
+
+		const rect = streamAreaEl.getBoundingClientRect();
+		const cx = event.clientX;
+		const cy = event.clientY;
+
+		// Use actual DOM rects so hit detection matches what the user sees
+		const tokenEls = streamAreaEl.querySelectorAll<HTMLElement>('[data-token-id]');
+		const hitIds: string[] = [];
+
+		for (const el of tokenEls) {
+			const tokenId = el.dataset.tokenId;
+			if (!tokenId) continue;
+			const tr = el.getBoundingClientRect();
+			// Expand rect by hit radius on all sides
+			const expanded = {
+				left: tr.left - CLICK_HIT_RADIUS_PX,
+				right: tr.right + CLICK_HIT_RADIUS_PX,
+				top: tr.top - CLICK_HIT_RADIUS_PX,
+				bottom: tr.bottom + CLICK_HIT_RADIUS_PX
+			};
+			if (cx >= expanded.left && cx <= expanded.right && cy >= expanded.top && cy <= expanded.bottom) {
+				hitIds.push(tokenId);
+			}
+		}
+
+		const hitTokens = streamTokens.filter(
+			(t) => t.variant !== 'loading' && hitIds.includes(t.id)
+		);
+
+		const isHit = hitTokens.length > 0;
+
+		// Show tap ripple effect at click position
+		const now = Date.now();
+		const effectId = `tap-${now}-${Math.random()}`;
+		const relX = ((cx - rect.left) / rect.width) * 100;
+		const relY = ((cy - rect.top) / rect.height) * 100;
+		tapEffects = [...tapEffects, { id: effectId, x: relX, y: relY, hit: isHit }];
+		setTimeout(() => {
+			tapEffects = tapEffects.filter((e) => e.id !== effectId);
+		}, TAP_EFFECT_DURATION_MS);
+
+		// Remove hit tokens and attempt card award for each
+		if (isHit) {
+			const hitIdSet = new Set(hitIds);
+			streamTokens = streamTokens.filter((t) => !hitIdSet.has(t.id));
+			for (const token of hitTokens) {
+				tryAwardCardForToken(token);
+			}
+		}
+	}
+
 	function enqueueReward(card: StoredCard) {
 		rewardQueue = [...rewardQueue, card];
 		processRewardQueue();
@@ -715,17 +809,33 @@
 <div class="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden">
 
 	{#if mode === 'stream'}
-		<div class="relative flex-1 overflow-hidden bg-base-100">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			class="relative flex-1 overflow-hidden bg-base-100"
+			role="application"
+			aria-label="Wikipedia edit stream — tap to catch cards"
+			bind:this={streamAreaEl}
+			onclick={handleStreamClick}
+		>
 			{#each streamTokens as token (token.id)}
 				<div
 					class="stream-token"
 					class:stream-token-burst={token.variant === 'burst'}
 					class:stream-token-loading={token.variant === 'loading'}
 					style={`--token-y:${token.y}%; --token-duration:${token.durationMs}ms; --spark-hue:${token.hue};`}
+					data-token-id={token.id}
 					onanimationend={() => handleTokenExit(token.id)}
 				>
 					<span class="token-text" class:token-text-loading={token.variant === 'loading'}>{token.title}</span>
 				</div>
+			{/each}
+			{#each tapEffects as effect (effect.id)}
+				<div
+					class="tap-effect"
+					class:tap-effect-hit={effect.hit}
+					style="left:{effect.x}%;top:{effect.y}%;"
+				></div>
 			{/each}
 		</div>
 	{:else}
@@ -872,7 +982,7 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 0.72rem;
+		font-size: 0.82rem;
 		font-weight: 700;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
@@ -986,6 +1096,62 @@
 		100% {
 			transform: translateX(105vw) translateY(-5dvh) scale(0.94);
 			opacity: 0;
+		}
+	}
+
+	.tap-effect {
+		position: absolute;
+		width: 2.6rem;
+		height: 2.6rem;
+		border-radius: 50% !important;
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+		z-index: 25;
+		background: radial-gradient(circle, rgb(255 255 255 / 0.18) 0%, rgb(255 255 255 / 0.05) 55%, transparent 72%);
+		border: 2px solid rgb(255 255 255 / 0.65);
+		animation: tap-ripple 0.55s ease-out forwards;
+	}
+
+	.tap-effect-hit {
+		width: 3.75rem;
+		height: 3.75rem;
+		border-radius: 50% !important;
+		background: radial-gradient(circle, rgb(255 210 60 / 0.55) 0%, rgb(255 160 30 / 0.2) 50%, transparent 72%);
+		border: 3px solid rgb(255 210 60 / 0.95);
+		box-shadow:
+			0 0 1.2rem rgb(255 200 40 / 0.75),
+			0 0 2.5rem rgb(255 150 20 / 0.4);
+		animation: tap-hit-burst 0.68s ease-out forwards;
+	}
+
+	@keyframes tap-ripple {
+		0% {
+			transform: translate(-50%, -50%) scale(0.25);
+			opacity: 0.9;
+		}
+		60% {
+			opacity: 0.6;
+		}
+		100% {
+			transform: translate(-50%, -50%) scale(2.8);
+			opacity: 0;
+		}
+	}
+
+	@keyframes tap-hit-burst {
+		0% {
+			transform: translate(-50%, -50%) scale(0.2);
+			opacity: 1;
+			filter: brightness(1.8);
+		}
+		40% {
+			opacity: 1;
+			filter: brightness(2.2);
+		}
+		100% {
+			transform: translate(-50%, -50%) scale(4.5);
+			opacity: 0;
+			filter: brightness(1);
 		}
 	}
 </style>
