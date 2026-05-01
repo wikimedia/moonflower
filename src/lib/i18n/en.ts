@@ -205,7 +205,11 @@ export const en = {
 			introBody: 'Cards arrive one at a time. Swipe right to keep the card. Swipe left to reject it. If you keep a fake, the run ends immediately.',
 			introConfirm: '[ START SWIPING ]',
 			failureTitle: 'FAKE KEPT',
-			failureBody: 'The illusion breaks. This run is over.'
+			failureBody: 'The illusion breaks. This run is over.',
+			mistakeTitle: 'THAT WAS A FAKE',
+			mistakeBody: 'You swiped right on a decoy. This time you get a pass — but next time the run ends.',
+			mistakeReasonLabel: 'Why it was fake',
+			mistakeConfirm: '[ GOT IT ]'
 		},
 		gachaStream: {
 			name: 'GACHA STREAM',

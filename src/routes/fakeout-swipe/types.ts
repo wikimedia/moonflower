@@ -42,6 +42,7 @@ export interface FakeoutSwipeState {
 	runEndedAt: number | null;
 	cooldownUntil: number | null;
 	hasSeenDealIntro: boolean;
+	hasSeenFakeMistake: boolean;
 	totalDealt: number;
 	activeHand: DealCard[];
 	collection: CollectionEntry[];

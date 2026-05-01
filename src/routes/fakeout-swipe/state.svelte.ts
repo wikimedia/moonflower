@@ -10,6 +10,7 @@ const initialState: FakeoutSwipeState = {
 	runEndedAt: null,
 	cooldownUntil: null,
 	hasSeenDealIntro: false,
+	hasSeenFakeMistake: false,
 	totalDealt: 0,
 	activeHand: [],
 	collection: [],
@@ -153,6 +154,13 @@ export const fakeoutSwipeState = {
 		patch((current) => ({
 			...current,
 			hasSeenDealIntro: true
+		}));
+	},
+	markFakeMistakeSeen() {
+		if (state.hasSeenFakeMistake) return;
+		patch((current) => ({
+			...current,
+			hasSeenFakeMistake: true
 		}));
 	}
 };
