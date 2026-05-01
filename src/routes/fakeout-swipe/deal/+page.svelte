@@ -20,6 +20,7 @@
 	let countdownTimer: number | null = null;
 	let introPrimed = $state(false);
 	let showIntro = $state(true);
+	let showMistakeModal = $state(false);
 	let viewportWidth = $state(430);
 	let dragPointerId: number | null = null;
 	let dragStartX = $state(0);
@@ -173,6 +174,12 @@
 
 	function keepCard(card: DealCard) {
 		if (card.isFake) {
+			if (!snapshot.hasSeenFakeMistake) {
+				showMistakeModal = true;
+				fakeoutSwipeState.markFakeMistakeSeen();
+				fakeoutSwipeState.rejectCard(card.id);
+				return;
+			}
 			failed = true;
 			fakeoutSwipeState.takeFake({
 				cardId: card.id,
@@ -439,6 +446,24 @@
 			</div>
 		</div>
 	</div>
+
+	{#if showMistakeModal}
+		<div class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">
+			<div class="w-full max-w-xl border-2 border-warning bg-base-100 p-5">
+				<h2 class="text-lg font-bold uppercase tracking-[0.3em] text-warning">
+					{en.experiments.fakeoutSwipe.mistakeTitle}
+				</h2>
+				<p class="mt-4 text-sm uppercase tracking-widest opacity-80">
+					{en.experiments.fakeoutSwipe.mistakeBody}
+				</p>
+				<div class="mt-6 flex justify-end">
+					<button class="btn btn-warning tracking-[0.2em]" onclick={() => { showMistakeModal = false; }}>
+						{en.experiments.fakeoutSwipe.mistakeConfirm}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if showIntro}
 		<div class="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-4">

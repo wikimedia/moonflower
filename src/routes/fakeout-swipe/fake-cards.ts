@@ -55,6 +55,78 @@ export const fakeCards: FakeCard[] = [
 			'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Opera_at_Llandudno_%281531696%29.jpg/330px-Opera_at_Llandudno_%281531696%29.jpg',
 		fakeReason: 'No venue logs or performers can be independently verified.'
 	},
+{
+        id: 'fc-phantom-reef',
+        title: 'Verran\'s Phantom Reef',
+        extract:
+            'Verran\'s Phantom Reef is a fictitious navigational hazard that appeared on British Admiralty charts from 1842 until 1915. The reef was originally charted by Captain Elias Verran, who claimed his vessel briefly ran aground on a structure made entirely of petrified wood in the middle of the South Atlantic. Decades of subsequent expeditions failed to locate the reef. Modern oceanographers suggest Verran likely encountered a massive, temporary raft of floating pumice from an underwater volcanic eruption.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Old-world-map.jpg/960px-Old-world-map.jpg',
+			fakeReason: ""
+    },	
+{
+        id: 'fc-phosphor-skirmishes',
+        title: 'Phosphor Skirmishes',
+        extract:
+            'The Phosphor Skirmishes were a series of minor territorial conflicts in the late 17th century between rival mining guilds in the Appalachian Mountains. The combatants were not fighting over gold or coal, but rather a rare, hyper-luminescent strain of cave moss that was highly valued by European aristocrats as a natural, fireproof reading light. The skirmishes ceased abruptly when the moss strain went extinct due to over-harvesting and a localized fungal blight.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Luminous_moss_in_Makkausu_Cave%2C_Rausu%2C_Hokkaido.JPG/960px-Luminous_moss_in_Makkausu_Cave%2C_Rausu%2C_Hokkaido.JPG',
+						fakeReason: ""
+    },	{
+		id: 'fc-isochronal-board',
+        title: 'Isochronal Board of Trade',
+        extract:
+            'The Isochronal Board of Trade was a British regulatory committee established in 1903 to standardize the size and weight of cardboard boxes used exclusively for the transport of root vegetables. Due to shifting agricultural priorities and the introduction of wooden crates, the board met only three times before being quietly dissolved into the Ministry of Agriculture in 1906. Records of its proceedings consist entirely of debates regarding acceptable moisture retention levels in corrugated pulp.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Fruits_and_vegetables_2021.jpg/960px-Fruits_and_vegetables_2021.jpg',
+									fakeReason: ""
+    },	
+{
+        id: 'fc-iso-419-b',
+        title: 'ISO Standard 419-B',
+        extract:
+            'ISO Standard 419-B was a short-lived international manufacturing standard proposed in 1978 for the threading on aluminum screws used specifically in the assembly of non-motorized office chairs. The standard sought to unify the pitch and diameter of the screws across European and North American manufacturers. It was ultimately rejected by the International Organization for Standardization in 1980 due to a lack of industry interest, as most manufacturers had already adopted proprietary fastening methods.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Screw_size_%28abstract%29.svg/960px-Screw_size_%28abstract%29.svg.png',
+												fakeReason: ""
+    },
+{
+        id: 'fc-arthur-pendleton',
+        title: 'Arthur Pendleton',
+        extract:
+            'Arthur Pendleton (1882–1947) was an American municipal clerk and amateur actuary best known for his 30-year tenure at the Department of Records in Albany, New York. Pendleton is noted primarily for his 1924 proposal to switch the department\'s filing system from alphabetical by surname to a color-coded chronological system based on the fiscal quarter. The proposal was denied. His self-published 1931 memoir, "A Life in Carbon Copy," sold fourteen copies.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/1/14/Brig_Gen_Arthur_P_Bagby_CSA.JPG',
+															fakeReason: ""
+    },	
+	{
+        id: 'fc-soviet-sun-blocks',
+        title: 'Project Podsolnechnik',
+        extract:
+            'Project Podsolnechnik (Russian for "Sunflower") was a brief experimental housing initiative in the Soviet Union during the early 1970s. The project consisted of three brutalist apartment blocks mounted on massive hydraulic turntables designed to rotate with the sun, theoretically reducing winter heating costs. The initiative was deemed a failure within its first year, as the constant rotation severely tangled municipal plumbing lines and caused widespread vertigo among the residents.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Novosibirsk_Planetarium.jpg/960px-Novosibirsk_Planetarium.jpg',
+															fakeReason: ""
+    },	
+{
+        id: 'fc-eel-telegraph',
+        title: 'Atlantic Eel-Relay Experiment',
+        extract:
+            'The Atlantic Eel-Relay Experiment was a disastrous 1862 attempt to boost the signal strength of early transatlantic telegraph cables. The Anglo-American Telegraph Company briefly employed marine biologists to splice glass tanks containing electric eels directly into the copper relay lines off the coast of Newfoundland. The theory posited that the animals\' natural bioelectrogenesis would act as organic signal amplifiers. The project was abandoned after the eels repeatedly short-circuited the line during feeding times.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/0/07/Electrophorus_1903.png',
+															fakeReason: ""
+    },	
+{
+        id: 'fc-olympic-poetry',
+        title: '1904 Olympic Decameter Recitation',
+        extract:
+            'The Decameter Recitation was a short-lived athletic event featured only in the 1904 Summer Olympics in St. Louis. Competitors were required to sprint a 100-meter dash while simultaneously reciting a ten-stanza original poem from memory. Judges scored athletes on both their race time and their poetic meter. The event was permanently removed from the Olympic roster after the gold medalist collapsed from hyperventilation, and the silver medalist was disqualified for rhyming "orange" with a fabricated word.',
+        thumbnail:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/1924_Olympics_100m_Semi_final_2.jpg/960px-1924_Olympics_100m_Semi_final_2.jpg',
+															fakeReason: ""
+
+    },	
 	{
 		id: 'fc-elbonia',
 		title: 'Elbonia, Czech Republic',

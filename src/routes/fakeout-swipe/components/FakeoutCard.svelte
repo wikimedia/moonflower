@@ -123,7 +123,7 @@
 							{article.title}
 						</h2>
 
-						<div class="prose prose-sm max-w-none line-clamp-6">
+						<div class="prose prose-sm max-w-none line-clamp-8">
 							<p>{article.extract}</p>
 						</div>
 
@@ -175,7 +175,7 @@
 							{article.title}
 						</h2>
 
-						<div class="prose prose-sm max-w-none line-clamp-6">
+						<div class="prose prose-sm max-w-none line-clamp-8">
 							<p>{article.extract}</p>
 						</div>
 
